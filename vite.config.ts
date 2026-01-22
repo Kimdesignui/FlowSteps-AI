@@ -1,40 +1,47 @@
-import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
+name: Deploy to GitHub Pages
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  // Tải các biến môi trường từ file .env hoặc môi trường hệ thống
-  const env = loadEnv(mode, process.cwd(), '');
+on:
+  push:
+    branches: "main"
 
-  return {
-    // Cấu hình quan trọng để chạy trên GitHub Pages
-    base: './', 
-    
-    server: {
-      port: 3000,
-      host: '0.0.0.0',
-    },
-    
-    plugins: [react()],
-    
-    define: {
-      // Chuyển đổi các biến môi trường để sử dụng trong code React qua process.env
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    },
-    
-    resolve: {
-      alias: {
-        // Thiết lập alias '@' để trỏ vào thư mục gốc của dự án
-        '@': path.resolve(__dirname, '.'),
-      },
-    },
-    
-    // Cấu hình build để đảm bảo đầu ra nằm trong thư mục 'dist' cho GitHub Actions
-    build: {
-      outDir: 'dist',
-      assetsDir: 'assets',
-    }
-  };
-});
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build_site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        # Truyền API Key từ GitHub Secrets vào quá trình biên dịch
+        run: npm run build
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+  deploy:
+    needs: build_site
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

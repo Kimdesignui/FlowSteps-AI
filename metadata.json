@@ -1,0 +1,9 @@
+{
+  "name": "FlowSteps AI - Guide Creator",
+  "description": "An AI-powered documentation tool similar to Tango/Kommodo. Capture steps, annotate screenshots, and generate PDF guides instantly.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "display-capture"
+  ]
+}

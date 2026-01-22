@@ -4,12 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlowSteps AI</title>
-    <!-- Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- DaisyUI & Tailwind -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -22,13 +20,13 @@
               sans: ['Inter', 'Segoe UI', '-apple-system', 'BlinkMacSystemFont', 'San Francisco', 'Roboto', 'sans-serif'],
             },
             colors: {
-              primary: '#6366f1', // Indigo 500
-              secondary: '#ec4899', // Pink 500
-              accent: '#8b5cf6', // Violet 500
-              neutral: '#1e293b', // Slate 800
+              primary: '#6366f1', 
+              secondary: '#ec4899', 
+              accent: '#8b5cf6', 
+              neutral: '#1e293b', 
               'base-100': '#ffffff',
-              'base-200': '#f8fafc', // Slate 50
-              'base-300': '#e2e8f0', // Slate 200
+              'base-200': '#f8fafc', 
+              'base-300': '#e2e8f0', 
             },
             boxShadow: {
               'soft': '0 4px 20px -2px rgba(99, 102, 241, 0.1)',
@@ -47,8 +45,8 @@
                 neutral: "#1e293b",
                 "base-100": "#ffffff",
                 "base-200": "#f8fafc",
-                "--rounded-btn": "1rem", // More rounded buttons
-                "--rounded-box": "1rem", // More rounded cards
+                "--rounded-btn": "1rem", 
+                "--rounded-box": "1rem", 
               },
             },
           ],
@@ -59,7 +57,6 @@
       body {
         font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'San Francisco', sans-serif;
       }
-      /* Custom scrollbar */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -84,18 +81,10 @@
         background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
-  }
-}
-</script>
-</head>
+  </head>
   <body class="bg-base-200 h-screen overflow-hidden text-base-content font-sans antialiased selection:bg-indigo-100 selection:text-indigo-700">
     <div id="root"></div>
+    
+    <script type="module" src="index.tsx"></script>
   </body>
 </html>

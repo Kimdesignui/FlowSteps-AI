@@ -10,17 +10,16 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
   const [url, setUrl] = useState('');
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isStreamReady, setIsStreamReady] = useState(false);
   const [capturedCount, setCapturedCount] = useState(0);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [remoteOpen, setRemoteOpen] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const imageCaptureRef = useRef<any>(null); 
   const remoteWindowRef = useRef<Window | null>(null);
 
   useEffect(() => {
-    // Listen for messages from the remote control popup
     const handleMessage = (event: MessageEvent) => {
         if (event.data === 'SNAP_TRIGGER') {
             captureStep();
@@ -29,7 +28,6 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
     window.addEventListener('message', handleMessage);
     return () => {
         window.removeEventListener('message', handleMessage);
-        // Close popup when component unmounts
         if (remoteWindowRef.current) remoteWindowRef.current.close();
     };
   }, []);
@@ -51,11 +49,9 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
   const openRemoteControl = () => {
     const width = 220;
     const height = 160;
-    // Position it at the bottom right by default
     const left = window.screen.width - width - 20;
     const top = window.screen.height - height - 100;
     
-    // Check if already open
     if (remoteWindowRef.current && !remoteWindowRef.current.closed) {
         remoteWindowRef.current.focus();
         setRemoteOpen(true);
@@ -101,7 +97,6 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
 
   const startRecording = async () => {
     try {
-      // Ensure remote is open before starting if possible, or at least try
       if (!remoteWindowRef.current || remoteWindowRef.current.closed) {
          openRemoteControl();
       }
@@ -111,15 +106,20 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
         audio: false
       });
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+      streamRef.current = stream;
+      
+      const videoEl = videoRef.current;
+      if (videoEl) {
+        videoEl.srcObject = stream;
+        videoEl.onloadedmetadata = () => {
+             videoEl.play().catch(e => console.error("Video play failed:", e));
+        };
+        videoEl.onplaying = () => {
+             setIsStreamReady(true);
+        };
       }
 
-      streamRef.current = stream;
       const track = stream.getVideoTracks()[0];
-      imageCaptureRef.current = new (window as any).ImageCapture(track);
-      
       setIsRecording(true);
       
       track.onended = () => {
@@ -128,7 +128,6 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
 
     } catch (err) {
       console.error("Failed to start recording:", err);
-      // More friendly error message based on the issue
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
           alert("Permission denied. Please allow screen recording permission when prompted.");
       } else {
@@ -138,25 +137,55 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
   };
 
   const captureStep = async () => {
-    if (!imageCaptureRef.current) return;
+    // Capture the current ref in a local variable to prevent null access if component updates/unmounts
+    const videoEl = videoRef.current;
+    
+    if (!videoEl) return;
+    
+    // Ensure stream is active in logic
+    if (videoEl.paused || videoEl.ended) {
+        try { await videoEl.play(); } catch(e) {}
+    }
 
-    try {
-        // Visual feedback on the internal button too
+    // Polling for readiness
+    let attempts = 0;
+    // Wait up to 2 seconds for data
+    while (videoEl.readyState < 2 && attempts < 40) {
+        await new Promise(r => setTimeout(r, 50));
+        attempts++;
+        // If the ref suddenly became null (component unmounted), abort safely
+        if (!videoRef.current) return;
+    }
+
+    if (videoEl.readyState < 2) { 
+        console.warn("Capture failed: Video stream not ready (State: " + videoEl.readyState + ")");
+        // Visual feedback for error
         const btn = document.getElementById('capture-btn');
         if(btn) {
-            btn.classList.add('scale-95', 'ring-4', 'ring-brand-200');
-            setTimeout(() => btn.classList.remove('scale-95', 'ring-4', 'ring-brand-200'), 150);
+             btn.classList.add('bg-yellow-500');
+             setTimeout(() => btn.classList.remove('bg-yellow-500'), 500);
+        }
+        return;
+    }
+
+    try {
+        // Visual feedback
+        const btn = document.getElementById('capture-btn');
+        if(btn) {
+            btn.classList.add('scale-95', 'ring-4', 'ring-indigo-200');
+            setTimeout(() => btn.classList.remove('scale-95', 'ring-4', 'ring-indigo-200'), 150);
         }
 
-        const bitmap = await imageCaptureRef.current.grabFrame();
-        
         const canvas = document.createElement('canvas');
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
+        // Ensure dimensions are valid
+        canvas.width = videoEl.videoWidth || 1920;
+        canvas.height = videoEl.videoHeight || 1080;
+        
         const ctx = canvas.getContext('2d');
         if (ctx) {
-            ctx.drawImage(bitmap, 0, 0);
+            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
             const base64 = canvas.toDataURL('image/png');
+            
             setCapturedImages(prev => [...prev, base64]);
             setCapturedCount(prev => prev + 1);
         }
@@ -166,12 +195,28 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
   };
 
   const handleFinish = () => {
+    setIsStreamReady(false);
+    
+    // Stop tracks
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
+    
+    // Close remote
     if (remoteWindowRef.current) {
         remoteWindowRef.current.close();
     }
+
+    // Call onFinish with whatever we have
+    // Note: capturedImages is a state, passing it directly might use a stale closure if not careful.
+    // However, since handleFinish is called from UI or onended, it should access the current state scope component-wise.
+    // To be absolutely safe if called from event listener, we rely on the state variable which is updated.
+    // Check if we captured anything
+    if (capturedImages.length === 0 && isRecording) {
+        // If manual finish with 0 images, maybe warn?
+        // But for now, we just pass what we have.
+    }
+    
     onFinish(capturedImages);
   };
 
@@ -184,7 +229,7 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
             ← Back
           </button>
           
-          <div className="flex items-center gap-2 flex-1 max-w-xl bg-slate-50 border border-slate-200 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500 transition-all">
+          <div className="flex items-center gap-2 flex-1 max-w-xl bg-slate-50 border border-slate-200 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
             <IconGlobe className="w-4 h-4 text-slate-400" />
             <input 
               type="text" 
@@ -207,7 +252,7 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
           {activeUrl && (
              <button
                 onClick={openInNewTab}
-                className="flex items-center gap-2 px-3 py-2 text-brand-600 hover:bg-brand-50 rounded-md text-sm font-medium transition-colors border border-brand-200"
+                className="flex items-center gap-2 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded-md text-sm font-medium transition-colors border border-indigo-200"
                 title="Open in new window"
              >
                 <IconExternalLink className="w-4 h-4" />
@@ -217,7 +262,6 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
         </div>
 
         <div className="flex items-center gap-4 ml-4">
-           {/* Launch Remote Button - Always visible now */}
            <button 
                 onClick={openRemoteControl} 
                 className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-bold border transition-colors ${
@@ -233,7 +277,7 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
            {!isRecording ? (
              <button 
                 onClick={startRecording}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 shadow-sm animate-pulse font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow-sm animate-pulse font-medium"
              >
                 <div className="w-2 h-2 rounded-full bg-white" />
                 Start Session
@@ -241,7 +285,7 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
            ) : (
              <div className="flex items-center gap-4">
                 <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Steps: <span className="text-brand-600 text-lg">{capturedCount}</span>
+                    Steps: <span className="text-indigo-600 text-lg">{capturedCount}</span>
                 </div>
                 <button 
                     onClick={handleFinish}
@@ -260,16 +304,15 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
         <div className="flex-1 bg-slate-200 relative flex items-center justify-center">
             {activeUrl ? (
                 <div className="w-full h-full relative flex flex-col">
-                     {/* Guidance Banner */}
-                    <div className="bg-blue-50 text-blue-900 text-sm px-6 py-4 flex flex-col gap-2 border-b border-blue-200 shadow-sm relative z-10">
+                     <div className="bg-blue-50 text-blue-900 text-sm px-6 py-4 flex flex-col gap-2 border-b border-blue-200 shadow-sm relative z-10">
                         <div className="font-bold flex items-center gap-2">
                             <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">i</span>
                             How to capture from an external window:
                         </div>
                         <ol className="list-decimal list-inside space-y-1 text-slate-700 ml-1">
-                            <li>Click <span className="font-semibold text-brand-600">Open External</span> to launch your website in a new window.</li>
+                            <li>Click <span className="font-semibold text-indigo-600">Open External</span> to launch your website in a new window.</li>
                             <li>Click <span className="font-semibold text-blue-700">Launch Remote</span> above to open the red capture button.</li>
-                            <li>Click <span className="font-semibold text-brand-600">Start Session</span> and select the external window to share.</li>
+                            <li>Click <span className="font-semibold text-indigo-600">Start Session</span> and select the external window to share.</li>
                             <li className="text-red-600 font-bold">Important: Do not use Fullscreen mode on the target site (the button will disappear).</li>
                             <li>Use the <span className="font-bold text-red-600">Red Remote Button</span> to snap each step.</li>
                         </ol>
@@ -291,7 +334,6 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
             )}
         </div>
 
-        {/* Internal Sidebar Controls (Still available if user stays in tab) */}
         {isRecording && (
             <div className="w-24 bg-slate-900 flex flex-col items-center py-6 gap-6 z-30 shadow-xl border-l border-slate-700">
                 <div className="flex flex-col items-center gap-2 sticky top-6">
@@ -306,8 +348,13 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
                     <span className="text-white text-xs font-bold uppercase tracking-widest mt-1">Snap</span>
                 </div>
                 
-                {/* Hidden video element for stream capture */}
-                <video ref={videoRef} className="w-16 h-auto opacity-50 rounded border border-slate-700 hidden" muted playsInline />
+                <video 
+                    ref={videoRef} 
+                    className="fixed top-0 left-0 w-[1280px] h-[720px] -z-50 pointer-events-none opacity-5" 
+                    muted 
+                    playsInline 
+                    autoPlay
+                />
             </div>
         )}
       </div>

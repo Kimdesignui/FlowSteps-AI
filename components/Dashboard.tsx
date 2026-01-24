@@ -8,10 +8,9 @@ interface DashboardProps {
     onCreateProject: () => void;
     onEditGuide: (id: string) => void;
     onViewProject: (id: string) => void;
-    onRecordFlow: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onCreateGuide, onCreateProject, onEditGuide, onViewProject, onRecordFlow }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onCreateGuide, onCreateProject, onEditGuide, onViewProject }) => {
     const [guides, setGuides] = useState<Guide[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
 
@@ -59,23 +58,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onCreateGuide, onCreateProject, o
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                     <button onClick={onCreateGuide} className="group relative overflow-hidden bg-white text-slate-800 p-8 rounded-3xl shadow-soft border border-indigo-50 hover:border-indigo-200 hover:shadow-xl hover:scale-[1.005] transition-all text-left flex items-center gap-6">
+                <div className="mb-12">
+                     <button onClick={onCreateGuide} className="w-full group relative overflow-hidden bg-white text-slate-800 p-8 rounded-3xl shadow-soft border border-indigo-50 hover:border-indigo-200 hover:shadow-xl hover:scale-[1.005] transition-all text-left flex items-center gap-6">
                         <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
                             <IconPlus className="w-8 h-8" />
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold mb-1 text-slate-900">Create New Guide</h2>
                             <p className="text-slate-500">Capture screenshots manually, upload images, and annotate.</p>
-                        </div>
-                     </button>
-                     <button onClick={onRecordFlow} className="group relative overflow-hidden bg-white text-slate-800 p-8 rounded-3xl shadow-soft border border-pink-50 hover:border-pink-200 hover:shadow-xl hover:scale-[1.005] transition-all text-left flex items-center gap-6">
-                        <div className="w-16 h-16 bg-pink-50 text-pink-600 rounded-2xl flex items-center justify-center shrink-0">
-                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-bold mb-1 text-slate-900">Record Flow</h2>
-                            <p className="text-slate-500">Auto-capture steps while you browse websites.</p>
                         </div>
                      </button>
                 </div>

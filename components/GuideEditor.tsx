@@ -2,43 +2,94 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DocStep, ProjectMetadata, Annotation, Guide } from '../types';
 import ImageEditor from './ImageEditor';
 import { analyzeScreenshot, generateStepDescription } from '../services/geminiService';
-import { IconPlus, IconTrash, IconDownload, IconCamera, IconWand, IconArrowUp, IconArrowDown, IconGlobe, IconType, IconSquare, IconCircle, IconCrop, IconFileCode, IconFileText, IconArrowRight, IconUndo, IconRedo, IconEye, IconX, IconList, IconRefresh, IconImage, IconSparkles, IconCopy, IconCheck, IconSave, IconHome, IconBold, IconItalic } from './Icons';
+import { IconPlus, IconTrash, IconDownload, IconCamera, IconWand, IconArrowUp, IconArrowDown, IconGlobe, IconType, IconSquare, IconCircle, IconCrop, IconFileCode, IconFileText, IconArrowRight, IconUndo, IconRedo, IconEye, IconX, IconList, IconRefresh, IconImage, IconSparkles, IconCopy, IconCheck, IconSave, IconHome, IconBold, IconItalic, IconIndent, IconOutdent } from './Icons';
 
-// Simple WYSIWYG Editor Component
+// --- Extended WYSIWYG Editor Component ---
 const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder: string }) => {
     const editorRef = useRef<HTMLDivElement>(null);
+    const [activeFormats, setActiveFormats] = useState<string[]>([]);
 
     useEffect(() => {
         if (editorRef.current && editorRef.current.innerHTML !== value) {
-            editorRef.current.innerHTML = value;
+            if (document.activeElement !== editorRef.current) {
+                editorRef.current.innerHTML = value;
+            }
         }
     }, [value]);
 
     const handleInput = () => {
         if (editorRef.current) {
             onChange(editorRef.current.innerHTML);
+            checkFormats();
         }
     };
 
-    const exec = (command: string) => {
-        document.execCommand(command, false);
+    const checkFormats = () => {
+        const formats: string[] = [];
+        if (document.queryCommandState('bold')) formats.push('bold');
+        if (document.queryCommandState('italic')) formats.push('italic');
+        if (document.queryCommandState('insertUnorderedList')) formats.push('list');
+        setActiveFormats(formats);
+    };
+
+    const exec = (command: string, value: string | undefined = undefined) => {
+        document.execCommand(command, false, value);
         if (editorRef.current) {
             editorRef.current.focus();
             onChange(editorRef.current.innerHTML);
+            checkFormats();
         }
     };
 
     return (
-        <div className="border border-slate-200 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-            <div className="flex items-center gap-1 p-2 border-b border-slate-100 bg-slate-50/50">
-                <button onClick={() => exec('bold')} className="p-1.5 rounded hover:bg-slate-200 text-slate-600 tooltip tooltip-bottom" data-tip="Bold">
+        <div className="border border-slate-200 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all shadow-sm">
+            <div className="flex flex-wrap items-center gap-1 p-2 border-b border-slate-100 bg-slate-50/50">
+                <select 
+                    className="select select-xs select-bordered bg-white w-24 font-normal"
+                    onChange={(e) => exec('fontName', e.target.value)}
+                    defaultValue="Inter"
+                >
+                    <option value="Inter">Inter</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Times New Roman">Times</option>
+                    <option value="Courier New">Courier</option>
+                </select>
+
+                <select 
+                    className="select select-xs select-bordered bg-white w-16 font-normal ml-1"
+                    onChange={(e) => exec('fontSize', e.target.value)}
+                    defaultValue="3"
+                >
+                    <option value="1">Small</option>
+                    <option value="3">Normal</option>
+                    <option value="5">Large</option>
+                    <option value="7">Huge</option>
+                </select>
+
+                <div className="w-px h-4 bg-slate-300 mx-2"></div>
+
+                <button 
+                    onClick={() => exec('bold')} 
+                    className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors ${activeFormats.includes('bold') ? 'bg-slate-200 text-indigo-600' : ''}`}
+                    title="Bold"
+                >
                     <IconBold className="w-4 h-4" />
                 </button>
-                <button onClick={() => exec('italic')} className="p-1.5 rounded hover:bg-slate-200 text-slate-600 tooltip tooltip-bottom" data-tip="Italic">
+                <button 
+                    onClick={() => exec('italic')} 
+                    className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors ${activeFormats.includes('italic') ? 'bg-slate-200 text-indigo-600' : ''}`}
+                    title="Italic"
+                >
                     <IconItalic className="w-4 h-4" />
                 </button>
-                <div className="w-px h-4 bg-slate-300 mx-1"></div>
-                <button onClick={() => exec('insertUnorderedList')} className="p-1.5 rounded hover:bg-slate-200 text-slate-600 tooltip tooltip-bottom" data-tip="Bullet List">
+                
+                <div className="w-px h-4 bg-slate-300 mx-2"></div>
+                
+                <button 
+                    onClick={() => exec('insertUnorderedList')} 
+                    className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors ${activeFormats.includes('list') ? 'bg-slate-200 text-indigo-600' : ''}`}
+                    title="Bullet List"
+                >
                     <IconList className="w-4 h-4" />
                 </button>
             </div>
@@ -46,7 +97,9 @@ const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChang
                 ref={editorRef}
                 contentEditable
                 onInput={handleInput}
-                className="p-4 min-h-[120px] outline-none text-slate-600 leading-relaxed text-lg [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:my-2"
+                onKeyUp={checkFormats}
+                onMouseUp={checkFormats}
+                className="p-4 min-h-[150px] outline-none text-slate-600 leading-relaxed text-lg [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:my-2 font-sans"
                 style={{ whiteSpace: 'pre-wrap' }}
                 data-placeholder={placeholder}
             />
@@ -54,11 +107,103 @@ const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChang
     )
 }
 
-// Helper component for Document Preview
+const renderStepToCanvas = async (step: DocStep): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(step.image);
+
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            
+            ctx.drawImage(img, 0, 0);
+
+            step.annotations.forEach(ann => {
+                const x = (ann.x / 100) * canvas.width;
+                const y = (ann.y / 100) * canvas.height;
+                const w = (ann.width ? ann.width / 100 : 0) * canvas.width;
+                const h = (ann.height ? ann.height / 100 : 0) * canvas.height;
+
+                ctx.strokeStyle = ann.color || 'red';
+                ctx.fillStyle = ann.color || 'red';
+                ctx.lineWidth = 5;
+
+                if (ann.type === 'arrow') {
+                    const endX = (ann.width || 0) / 100 * canvas.width;
+                    const endY = (ann.height || 0) / 100 * canvas.height;
+                    
+                    const headlen = 20; 
+                    const dx = endX - x;
+                    const dy = endY - y;
+                    const angle = Math.atan2(dy, dx);
+
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(endX - headlen * Math.cos(angle - Math.PI / 6), endY - headlen * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(endX - headlen * Math.cos(angle + Math.PI / 6), endY - headlen * Math.sin(angle + Math.PI / 6));
+                    ctx.lineTo(endX, endY);
+                    ctx.fill();
+                } else if (ann.type === 'rect') {
+                    if (ann.style === 'fill') {
+                        ctx.globalAlpha = 0.3;
+                        ctx.fillRect(x, y, w, h);
+                        ctx.globalAlpha = 1.0;
+                    } else {
+                        ctx.strokeRect(x, y, w, h);
+                    }
+                } else if (ann.type === 'circle') {
+                    ctx.beginPath();
+                    ctx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, 2 * Math.PI);
+                    if (ann.style === 'fill') {
+                         ctx.globalAlpha = 0.3;
+                         ctx.fill();
+                         ctx.globalAlpha = 1.0;
+                    } else {
+                        ctx.stroke();
+                    }
+                } else if (ann.type === 'number') {
+                    const radius = 24; 
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = 'white';
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(ann.text || '', x, y);
+                } else if (ann.type === 'text') {
+                     ctx.font = 'bold 32px Arial';
+                     ctx.fillStyle = ann.color || 'red';
+                     ctx.textAlign = 'center';
+                     ctx.fillText(ann.text || '', x, y);
+                     ctx.lineWidth = 1;
+                     ctx.strokeStyle = 'white';
+                     ctx.strokeText(ann.text || '', x, y);
+                }
+            });
+
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = step.image;
+    });
+};
+
 const DocumentPreview = ({ 
     steps, 
     metadata, 
-    onClose,
+    onClose, 
     onExportHTML,
     onExportDOCX,
     onCopy
@@ -73,41 +218,44 @@ const DocumentPreview = ({
     const [includeTOC, setIncludeTOC] = useState(true);
     const [isCopying, setIsCopying] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [isPreparing, setIsPreparing] = useState(false);
 
-    const handleCopyClick = async () => {
-        setIsCopying(true);
-        const success = await onCopy(includeTOC);
-        setIsCopying(false);
-        if (success) {
-            setCopySuccess(true);
-            setTimeout(() => setCopySuccess(false), 2000);
+    const handleAction = async (action: 'copy' | 'html' | 'docx') => {
+        setIsPreparing(true);
+        await new Promise(r => setTimeout(r, 50));
+        
+        try {
+            if (action === 'copy') {
+                const success = await onCopy(includeTOC);
+                if (success) {
+                    setCopySuccess(true);
+                    setTimeout(() => setCopySuccess(false), 2000);
+                }
+            } else if (action === 'html') {
+                await onExportHTML(includeTOC);
+            } else if (action === 'docx') {
+                await onExportDOCX(includeTOC);
+            }
+        } finally {
+            setIsPreparing(false);
         }
     };
 
     return (
         <div className="fixed inset-0 z-[100] bg-base-200/95 backdrop-blur-sm flex flex-col animate-in fade-in duration-200">
-            {/* Preview Navbar */}
             <div className="navbar bg-white/90 backdrop-blur-md border-b border-indigo-100 px-6 shrink-0 h-16 shadow-sm z-20">
                 <div className="flex-1 gap-4">
                      <h2 className="font-bold text-xl text-indigo-900 flex items-center gap-2">
                         <span className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-pink-500 rounded-full"></span>
                         Preview Mode
                      </h2>
-                     <label className="label cursor-pointer gap-2 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 hover:bg-indigo-100 transition-colors" title="Includes Table of Contents in the exported file">
-                        <input 
-                            type="checkbox" 
-                            checked={includeTOC} 
-                            onChange={(e) => setIncludeTOC(e.target.checked)} 
-                            className="checkbox checkbox-xs checkbox-primary" 
-                        />
-                        <span className="label-text font-semibold text-indigo-700 text-xs uppercase tracking-wider flex items-center gap-1">Export TOC</span>
-                     </label>
+                     {isPreparing && <span className="loading loading-spinner text-primary loading-sm"></span>}
                 </div>
                 
                 <div className="flex-none gap-3">
                     <button 
-                        onClick={handleCopyClick} 
-                        disabled={isCopying}
+                        onClick={() => handleAction('copy')} 
+                        disabled={isCopying || isPreparing}
                         className={`btn btn-sm rounded-full gap-2 border-none shadow-lg transition-all ${
                             copySuccess 
                             ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
@@ -120,10 +268,10 @@ const DocumentPreview = ({
 
                     <div className="h-6 w-px bg-slate-200 mx-1"></div>
 
-                    <button onClick={() => onExportHTML(includeTOC)} className="btn btn-outline btn-primary btn-sm rounded-full gap-2 hover:shadow-glow">
+                    <button onClick={() => handleAction('html')} disabled={isPreparing} className="btn btn-outline btn-primary btn-sm rounded-full gap-2 hover:shadow-glow">
                         <IconFileCode className="w-4 h-4" /> HTML
                     </button>
-                    <button onClick={() => onExportDOCX(includeTOC)} className="btn btn-primary btn-sm rounded-full gap-2 text-white shadow-lg hover:shadow-indigo-500/30 border-none gradient-bg">
+                    <button onClick={() => handleAction('docx')} disabled={isPreparing} className="btn btn-primary btn-sm rounded-full gap-2 text-white shadow-lg hover:shadow-indigo-500/30 border-none gradient-bg">
                         <IconFileText className="w-4 h-4" /> DOCX
                     </button>
                     <button onClick={onClose} className="btn btn-circle btn-ghost btn-sm ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100">
@@ -132,30 +280,21 @@ const DocumentPreview = ({
                 </div>
             </div>
 
-            {/* Preview Body with Sidebar */}
             <div className="flex flex-1 overflow-hidden">
-                
-                {/* TOC Sidebar */}
                 <div className="w-80 bg-white border-r border-indigo-50 h-full overflow-y-auto p-6 hidden lg:block shrink-0 custom-scrollbar">
                     <h3 className="font-bold text-slate-400 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
                         <IconList className="w-4 h-4" /> Table of Contents
                     </h3>
                     <ul className="space-y-2 relative">
-                        {/* Connecting Line */}
-                        <div className="absolute left-[15px] top-4 bottom-4 w-px bg-indigo-50 -z-10"></div>
-                        
+                         <div className="absolute left-[15px] top-4 bottom-4 w-px bg-indigo-50 -z-10"></div>
                         {steps.map((step, idx) => (
-                            <li key={step.id}>
+                            <li key={step.id} style={{ paddingLeft: `${step.indentation * 12}px` }}>
                                 <a href={`#step-${step.id}`} className="flex items-start gap-3 group p-2 rounded-xl hover:bg-indigo-50 transition-all">
                                     <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-white border border-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shadow-sm group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-500 transition-all z-10">
                                         {idx + 1}
                                     </span>
                                     <div className="pt-1">
                                         <span className="text-sm font-semibold text-slate-600 group-hover:text-indigo-900 block leading-tight mb-1">{step.title}</span>
-                                        <span className="text-[10px] text-slate-400 block line-clamp-1">
-                                            {/* Strip HTML tags for TOC preview */}
-                                            {step.description.replace(/<[^>]+>/g, '').substring(0, 40)}...
-                                        </span>
                                     </div>
                                 </a>
                             </li>
@@ -163,7 +302,6 @@ const DocumentPreview = ({
                     </ul>
                 </div>
 
-                {/* Content Area */}
                 <div className="flex-1 overflow-y-auto p-8 flex justify-center bg-slate-50/50 scroll-smooth">
                     <div className="w-[850px] bg-white shadow-xl p-16 min-h-screen rounded-3xl border border-white mb-20">
                         <h1 className="text-5xl font-extrabold text-slate-900 border-b-2 border-indigo-100 pb-8 mb-6 tracking-tight">{metadata.title}</h1>
@@ -172,62 +310,28 @@ const DocumentPreview = ({
                             <span>{metadata.date}</span>
                         </div>
                         
-                        {steps.map((step, idx) => (
-                            <div key={step.id} id={`step-${step.id}`} className="mb-20 break-inside-avoid scroll-mt-24">
-                                <h2 className="text-3xl font-bold text-slate-800 mb-8 flex items-center gap-4">
-                                    <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 text-lg font-bold">{idx + 1}</span>
-                                    {step.title}
-                                </h2>
-                                <div className="relative inline-block mb-8 border-4 border-slate-100 rounded-xl overflow-hidden shadow-lg max-w-full group hover:border-indigo-100 transition-colors">
-                                    <img src={step.image} alt="step" className="max-w-full h-auto block" />
-                                    {step.annotations.map(ann => {
-                                        if (ann.type === 'arrow') {
-                                            const angle = Math.atan2((ann.height || 0) - ann.y, (ann.width || 0) - ann.x) * 180 / Math.PI;
-                                            const length = Math.sqrt(Math.pow((ann.width || 0) - ann.x, 2) + Math.pow((ann.height || 0) - ann.y, 2));
-                                            return (
-                                                <div key={ann.id} style={{
-                                                    position: 'absolute', left: `${ann.x}%`, top: `${ann.y}%`,
-                                                    width: `${length}%`, height: '4px', backgroundColor: ann.color || 'red',
-                                                    transformOrigin: '0 50%', transform: `rotate(${angle}deg)`
-                                                }}>
-                                                    <div style={{
-                                                        position: 'absolute', right: '-4px', top: '-6px',
-                                                        width: 0, height: 0, borderTop: '8px solid transparent', borderBottom: '8px solid transparent',
-                                                        borderLeft: `12px solid ${ann.color || 'red'}`
-                                                    }} />
-                                                </div>
-                                            )
-                                        }
-                                        if (ann.type === 'number') {
-                                            return <div key={ann.id} className="absolute flex items-center justify-center font-bold text-white rounded-full border-2 border-white shadow-lg text-xs" 
-                                                style={{ left: `${ann.x}%`, top: `${ann.y}%`, width: '28px', height: '28px', backgroundColor: ann.color, transform: 'translate(-50%, -50%)' }}>{ann.text}</div>
-                                        }
-                                        if (ann.type === 'rect' || ann.type === 'circle') {
-                                            const radius = ann.type === 'circle' ? '50%' : '8px';
-                                            return <div key={ann.id} className="absolute" style={{
-                                                left: `${ann.x}%`, top: `${ann.y}%`, width: `${ann.width}%`, height: `${ann.height}%`,
-                                                borderRadius: radius, borderColor: ann.color, borderWidth: ann.style === 'outline' ? '4px' : '0', borderStyle: 'solid',
-                                                backgroundColor: ann.style === 'fill' ? ann.color : 'transparent', opacity: ann.style === 'fill' ? 0.3 : 1,
-                                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                                            }} />
-                                        }
-                                        if (ann.type === 'text') {
-                                            return <div key={ann.id} className="absolute font-bold text-xl" style={{
-                                                left: `${ann.x}%`, top: `${ann.y}%`, color: ann.color, transform: 'translate(-50%, -50%)',
-                                                textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-                                            }}>{ann.text}</div>
-                                        }
-                                        return null;
-                                    })}
+                        {steps.map((step, idx) => {
+                             const HeadingTag = step.headingLevel || 'h2';
+                             return (
+                                <div key={step.id} id={`step-${step.id}`} className="mb-20 break-inside-avoid scroll-mt-24" style={{ marginLeft: `${step.indentation * 40}px` }}>
+                                    <HeadingTag className={`text-slate-800 mb-8 flex items-center gap-4 ${step.headingLevel === 'h1' ? 'text-4xl font-black' : step.headingLevel === 'h2' ? 'text-3xl font-bold' : 'text-2xl font-bold'}`}>
+                                        <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 text-lg font-bold shrink-0">{idx + 1}</span>
+                                        {step.title}
+                                    </HeadingTag>
+                                    
+                                    <div className="relative inline-block mb-8 border-4 border-slate-100 rounded-xl overflow-hidden shadow-lg max-w-full group hover:border-indigo-100 transition-colors">
+                                        <img src={step.image} alt="step" className="max-w-full h-auto block" />
+                                        {step.annotations.length > 0 && <div className="absolute top-2 right-2 badge badge-info text-white text-xs opacity-80">Annotations active</div>}
+                                    </div>
+                                    <div className="bg-slate-50 border-l-4 border-indigo-500 rounded-r-xl p-6 shadow-sm">
+                                        <div 
+                                            className="prose prose-slate max-w-none text-lg leading-relaxed text-slate-700 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:my-2" 
+                                            dangerouslySetInnerHTML={{ __html: step.description }} 
+                                        />
+                                    </div>
                                 </div>
-                                <div className="bg-slate-50 border-l-4 border-indigo-500 rounded-r-xl p-6 shadow-sm">
-                                    <div 
-                                        className="prose prose-slate max-w-none text-lg leading-relaxed text-slate-700 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:my-2" 
-                                        dangerouslySetInnerHTML={{ __html: step.description }} 
-                                    />
-                                </div>
-                            </div>
-                        ))}
+                             )
+                        })}
                     </div>
                 </div>
             </div>
@@ -239,18 +343,19 @@ interface GuideEditorProps {
     initialGuide: Guide | null;
     onSave: (guide: Guide) => void;
     onBack: () => void;
-    onRecordRequest: () => void;
 }
 
-export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequest }: GuideEditorProps) {
+export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEditorProps) {
   const [steps, setSteps] = useState<DocStep[]>(initialGuide?.steps || []);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(initialGuide?.steps[0]?.id || null);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   
+  const [guideId] = useState<string>(() => initialGuide?.id || Date.now().toString());
+  
   const [history, setHistory] = useState<{ past: Annotation[][], future: Annotation[][] }>({ past: [], future: [] });
 
   const [activeTool, setActiveTool] = useState<'number' | 'text' | 'rect' | 'circle' | 'crop' | 'arrow'>('number');
-  const [activeColor, setActiveColor] = useState('#6366f1'); // Default Indigo
+  const [activeColor, setActiveColor] = useState('#6366f1');
   const [activeStyle, setActiveStyle] = useState<'outline' | 'fill'>('outline');
 
   const [metadata, setMetadata] = useState<ProjectMetadata>(initialGuide?.metadata || {
@@ -262,7 +367,9 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const replaceFileInputRef = useRef<HTMLInputElement>(null); 
+  const replaceFileInputRef = useRef<HTMLInputElement>(null);
+  
+  const captureVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     setHistory({ past: [], future: [] });
@@ -271,7 +378,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
   const handleManualSave = () => {
       setSaveStatus('saving');
       const guideToSave: Guide = {
-          id: initialGuide?.id || Date.now().toString(),
+          id: guideId, 
           metadata,
           steps,
           lastModified: Date.now()
@@ -280,25 +387,60 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
       setTimeout(() => setSaveStatus('saved'), 500);
       setTimeout(() => setSaveStatus('idle'), 2000);
   };
+  
+  // Helper to capture frame from stream using video element (Cross-browser compatible)
+  const captureFrameFromStream = async (stream: MediaStream): Promise<string> => {
+      return new Promise((resolve, reject) => {
+          const video = captureVideoRef.current;
+          if (!video) {
+              stream.getTracks().forEach(t => t.stop());
+              return reject("No video element");
+          }
+          
+          video.srcObject = stream;
+          video.onloadedmetadata = () => {
+              video.play().then(() => {
+                  setTimeout(() => {
+                      // Use a local reference to the video element we started with, or check current ref
+                      const currentVideo = captureVideoRef.current;
+                      if (!currentVideo) {
+                          stream.getTracks().forEach(t => t.stop());
+                          return reject("Video element unmounted");
+                      }
+
+                      const canvas = document.createElement('canvas');
+                      canvas.width = currentVideo.videoWidth;
+                      canvas.height = currentVideo.videoHeight;
+                      const ctx = canvas.getContext('2d');
+                      if (ctx) {
+                          ctx.drawImage(currentVideo, 0, 0);
+                          const data = canvas.toDataURL('image/png');
+                          
+                          stream.getTracks().forEach(t => t.stop());
+                          currentVideo.srcObject = null;
+                          resolve(data);
+                      } else {
+                          stream.getTracks().forEach(t => t.stop());
+                          reject("Canvas context missing");
+                      }
+                  }, 200); 
+              }).catch(e => {
+                  stream.getTracks().forEach(t => t.stop());
+                  reject(e);
+              });
+          };
+      });
+  };
 
   const handleCapture = async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { mediaSource: 'screen' } as any
       });
-      const track = stream.getVideoTracks()[0];
-      const imageCapture = new (window as any).ImageCapture(track);
-      const bitmap = await imageCapture.grabFrame();
-      track.stop();
-
-      const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(bitmap, 0, 0);
-        addStep(canvas.toDataURL('image/png'));
-      }
+      
+      const base64Image = await captureFrameFromStream(stream);
+      addStep(base64Image);
+      
     } catch (err) {
       console.error("Screen capture failed:", err);
     }
@@ -310,19 +452,10 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
         const stream = await navigator.mediaDevices.getDisplayMedia({
             video: { mediaSource: 'screen' } as any
         });
-        const track = stream.getVideoTracks()[0];
-        const imageCapture = new (window as any).ImageCapture(track);
-        const bitmap = await imageCapture.grabFrame();
-        track.stop();
-
-        const canvas = document.createElement('canvas');
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-            ctx.drawImage(bitmap, 0, 0);
-            updateStep(selectedStepId, { image: canvas.toDataURL('image/png') });
-        }
+        
+        const base64Image = await captureFrameFromStream(stream);
+        updateStep(selectedStepId, { image: base64Image });
+        
       } catch (err) {
         console.error("Replace capture failed:", err);
       }
@@ -353,6 +486,8 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
       image: base64Image,
       title: 'Processing...',
       description: 'Analyzing...',
+      headingLevel: 'h2', 
+      indentation: 0,
       annotations: [],
       isProcessing: true,
     };
@@ -406,6 +541,16 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
     setSteps(newSteps);
   };
 
+  const changeIndentation = (index: number, direction: 'in' | 'out') => {
+    const step = steps[index];
+    let newLevel = step.indentation + (direction === 'in' ? 1 : -1);
+    newLevel = Math.max(0, Math.min(2, newLevel)); 
+    
+    const newSteps = [...steps];
+    newSteps[index] = { ...step, indentation: newLevel };
+    setSteps(newSteps);
+  };
+
   const updateStep = (id: string, updates: Partial<DocStep>) => {
     setSteps(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
   };
@@ -436,130 +581,114 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
       updateStep(selectedStepId, { annotations: next });
   };
 
-  // --- Export Logic ---
-  const generateHTMLContent = (includeTOC: boolean) => {
-    // Styling injected into the exported HTML for consistency
-    const font = "font-family: 'Segoe UI', Inter, sans-serif;";
-    let html = `
+  const generateDocumentContent = async (includeTOC: boolean): Promise<string> => {
+      let content = `
+      <!DOCTYPE html>
       <html>
       <head>
-        <meta charset="UTF-8">
-        <style>
-          body { ${font} max-width: 850px; margin: 0 auto; padding: 40px; color: #1e293b; line-height: 1.6; background-color: #f8fafc; }
-          .container { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-          h1 { color: #312e81; border-bottom: 2px solid #e0e7ff; padding-bottom: 20px; margin-bottom: 30px; font-weight: 800; font-size: 36px; }
-          .meta { color: #64748b; margin-bottom: 40px; font-style: italic; background: #f1f5f9; padding: 15px; border-radius: 10px; }
-          .toc { background: #e0e7ff; padding: 25px; border-radius: 15px; margin-bottom: 50px; }
-          .toc h3 { margin-top: 0; color: #312e81; font-weight: 700; }
-          .toc ul { list-style: none; padding: 0; }
-          .toc li { margin-bottom: 10px; border-bottom: 1px solid #c7d2fe; padding-bottom: 5px; }
-          .toc a { text-decoration: none; color: #4338ca; font-weight: 600; font-size: 16px; }
-          .step { margin-bottom: 60px; page-break-inside: avoid; border: 1px solid #e2e8f0; padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white; }
-          .step-title { font-size: 24px; font-weight: 800; margin-bottom: 20px; color: #1e293b; display: flex; align-items: center; gap: 12px; }
-          .step-num { background: #4f46e5; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; box-shadow: 0 2px 5px rgba(79, 70, 229, 0.4); }
-          .step-img-container { position: relative; display: inline-block; margin-bottom: 25px; max-width: 100%; border-radius: 8px; overflow: hidden; border: 2px solid #f1f5f9; }
-          .step-img { max-width: 100%; display: block; height: auto; }
-          .badge { position: absolute; background: #ec4899; color: white; border-radius: 50%; width: 28px; height: 28px; text-align: center; line-height: 28px; font-weight: bold; border: 2px solid white; transform: translate(-50%, -50%); font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-          .desc { font-size: 18px; color: #334155; background: #f8fafc; padding: 20px; border-radius: 12px; border-left: 5px solid #6366f1; }
-          .desc ul { list-style-type: disc; padding-left: 20px; margin: 10px 0; }
-          .desc b, .desc strong { font-weight: bold; color: #1e293b; }
-          .desc i, .desc em { font-style: italic; }
-        </style>
+          <meta charset="utf-8">
+          <title>${metadata.title}</title>
+          <style>
+              body { font-family: sans-serif; max-width: 800px; margin: 40px auto; color: #333; line-height: 1.6; }
+              h1 { font-size: 32px; border-bottom: 2px solid #eee; padding-bottom: 20px; color: #111; }
+              .meta { color: #666; font-size: 14px; margin-bottom: 40px; }
+              .step { margin-bottom: 60px; page-break-inside: avoid; }
+              .step h2 { font-size: 24px; margin-bottom: 20px; color: #222; }
+              .step img { max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+              .step-desc { font-size: 16px; color: #444; background: #f9fafb; padding: 20px; border-radius: 8px; border-left: 4px solid #6366f1; }
+              .toc { background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 40px; }
+              .toc h3 { margin-top: 0; font-size: 14px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; }
+              .toc ul { list-style: none; padding: 0; }
+              .toc li { margin-bottom: 8px; }
+              .toc a { text-decoration: none; color: #475569; font-weight: 500; }
+              .toc a:hover { color: #6366f1; }
+          </style>
       </head>
       <body>
-      <div class="container">
-        <h1>${metadata.title}</h1>
-        <div class="meta">Created by ${metadata.author} on ${metadata.date}</div>
-    `;
-
-    if (includeTOC) {
-        html += `<div class="toc"><h3>Table of Contents</h3><ul>`;
-        steps.forEach((step, idx) => {
-            html += `<li><a href="#step-${step.id}">${idx + 1}. ${step.title}</a></li>`;
-        });
-        html += `</ul></div>`;
-    }
-
-    steps.forEach((step, idx) => {
-        html += `
-        <div class="step" id="step-${step.id}">
-            <div class="step-title"><span class="step-num">${idx + 1}</span> ${step.title}</div>
-            <div class="step-img-container">
-                <img src="${step.image}" class="step-img" />
-                ${step.annotations.map(ann => {
-                    if (ann.type === 'number') {
-                        return `<div class="badge" style="left:${ann.x}%; top:${ann.y}%; background-color:${ann.color};">${ann.text}</div>`;
-                    }
-                    if (ann.type === 'rect' || ann.type === 'circle') {
-                        const style = ann.style === 'fill' ? `background-color:${ann.color};opacity:0.3;border:none;` : `border-color:${ann.color};`;
-                        const radius = ann.type === 'circle' ? '50%' : '6px';
-                        return `<div style="position:absolute; left:${ann.x}%; top:${ann.y}%; width:${ann.width}%; height:${ann.height}%; border:4px solid ${ann.color}; border-radius:${radius}; ${style} box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>`;
-                    }
-                    if (ann.type === 'arrow') {
-                         const angle = Math.atan2((ann.height || 0) - ann.y, (ann.width || 0) - ann.x) * 180 / Math.PI;
-                         const length = Math.sqrt(Math.pow((ann.width || 0) - ann.x, 2) + Math.pow((ann.height || 0) - ann.y, 2));
-                         return `<div style="position:absolute; left:${ann.x}%; top:${ann.y}%; width:${length}%; height:4px; background-color:${ann.color}; transform-origin:0 50%; transform:rotate(${angle}deg); box-shadow: 0 1px 2px rgba(0,0,0,0.3);"><div style="position:absolute; right:-4px; top:-6px; width:0; height:0; border-top:8px solid transparent; border-bottom:8px solid transparent; border-left:12px solid ${ann.color};"></div></div>`;
-                    }
-                    if (ann.type === 'text') {
-                         return `<div style="position:absolute; left:${ann.x}%; top:${ann.y}%; transform:translate(-50%, -50%); color:${ann.color}; font-weight:bold; font-size:18px; text-shadow: 0 1px 3px rgba(0,0,0,0.4); font-family: sans-serif;">${ann.text}</div>`;
-                    }
-                    return '';
-                }).join('')}
-            </div>
-            <div class="desc">${step.description}</div>
-        </div>
-        `;
-    });
-
-    html += `</div></body></html>`;
-    return html;
+          <h1>${metadata.title}</h1>
+          <div class="meta">
+              By ${metadata.author} • ${metadata.date}
+          </div>
+      `;
+  
+      if (includeTOC) {
+          content += `
+          <div class="toc">
+              <h3>Table of Contents</h3>
+              <ul>
+                  ${steps.map((step, i) => `
+                      <li style="padding-left: ${step.indentation * 15}px">
+                          <a href="#step-${step.id}">${i + 1}. ${step.title}</a>
+                      </li>
+                  `).join('')}
+              </ul>
+          </div>
+          `;
+      }
+  
+      for (const [index, step] of steps.entries()) {
+          const markedImage = await renderStepToCanvas(step);
+          const HeadingTag = step.headingLevel || 'h2';
+          content += `
+          <div class="step" id="step-${step.id}" style="margin-left: ${step.indentation * 20}px">
+              <${HeadingTag}>${index + 1}. ${step.title}</${HeadingTag}>
+              <img src="${markedImage}" alt="${step.title}" />
+              <div class="step-desc">
+                  ${step.description}
+              </div>
+          </div>
+          `;
+      }
+  
+      content += `</body></html>`;
+      return content;
   };
 
-  const handleExportHTML = (includeTOC: boolean) => {
-    const content = generateHTMLContent(includeTOC);
-    const blob = new Blob([content], { type: 'text/html' });
+  const handleExportHTML = async (includeTOC: boolean) => {
+    const htmlContent = await generateDocumentContent(includeTOC);
+    const blob = new Blob([htmlContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${metadata.title.replace(/\s+/g, '_')}.html`;
-    document.body.appendChild(a);
+    a.download = `${metadata.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const handleExportDOCX = (includeTOC: boolean) => {
-    // Basic HTML-as-Word export
-    const content = generateHTMLContent(includeTOC);
-    const blob = new Blob(['\ufeff', content], {
-        type: 'application/msword'
-    });
+  const handleExportDOCX = async (includeTOC: boolean) => {
+    const htmlContent = await generateDocumentContent(includeTOC);
+    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${metadata.title.replace(/\s+/g, '_')}.doc`;
-    document.body.appendChild(a);
+    a.download = `${metadata.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.doc`;
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
   const handleCopy = async (includeTOC: boolean): Promise<boolean> => {
-      try {
-          const content = generateHTMLContent(includeTOC);
-          const blobHtml = new Blob([content], { type: 'text/html' });
-          const blobText = new Blob([content], { type: 'text/plain' });
-          
-          const item = new ClipboardItem({ 
-              'text/html': blobHtml,
-              'text/plain': blobText 
-          });
-          await navigator.clipboard.write([item]);
-          return true;
-      } catch (err) {
-          console.error("Copy failed", err);
-          return false;
-      }
+    try {
+        const htmlContent = await generateDocumentContent(includeTOC);
+        const blobHtml = new Blob([htmlContent], { type: 'text/html' });
+        const blobText = new Blob([metadata.title + '\n\n' + steps.map(s => s.title + '\n' + s.description.replace(/<[^>]+>/g, '')).join('\n\n')], { type: 'text/plain' });
+        
+        // Use any to bypass TS checks if ClipboardItem is not in the environment types
+        const ClipboardItem = (window as any).ClipboardItem;
+
+        if (ClipboardItem) {
+            const item = new ClipboardItem({
+                'text/html': blobHtml,
+                'text/plain': blobText
+            });
+            await navigator.clipboard.write([item]);
+        } else {
+             await navigator.clipboard.writeText(await blobText.text());
+        }
+        return true;
+    } catch (err) {
+        console.error("Copy failed", err);
+        return false;
+    }
   };
 
   const selectedStep = steps.find(s => s.id === selectedStepId);
@@ -567,7 +696,6 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
   return (
     <div className="flex h-screen w-full bg-base-200 font-sans text-slate-800">
       
-      {/* Document Preview Overlay */}
       {isPreviewMode && (
           <DocumentPreview 
             steps={steps} 
@@ -579,7 +707,6 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
           />
       )}
 
-      {/* Sidebar - Floating Colorful Card Style */}
       <div className="w-80 flex flex-col z-20 h-full p-4 pr-0">
          <div className="bg-white rounded-3xl shadow-soft h-full flex flex-col overflow-hidden border border-white/50">
             <div className="p-6 border-b border-indigo-50 bg-gradient-to-r from-white to-indigo-50/30">
@@ -597,11 +724,12 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
                     <div 
                       key={step.id}
                       onClick={() => setSelectedStepId(step.id)}
-                      className={`relative p-4 rounded-2xl transition-all cursor-pointer group border ${
+                      className={`relative p-3 rounded-2xl transition-all cursor-pointer group border ${
                         selectedStepId === step.id 
                         ? 'border-indigo-200 bg-indigo-50 shadow-md scale-[1.02]' 
                         : 'border-transparent bg-slate-50 hover:bg-white hover:shadow-sm hover:border-slate-100'
                       }`}
+                      style={{ marginLeft: `${(step.indentation || 0) * 16}px` }}
                     >
                         <div className="flex gap-3 items-start">
                              <div className={`w-6 h-6 rounded-full shrink-0 mt-0.5 flex items-center justify-center text-xs font-bold ${selectedStepId === step.id ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200' : 'bg-slate-200 text-slate-500'}`}>
@@ -613,7 +741,12 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
                              </div>
                         </div>
                          
-                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex gap-1 bg-white rounded-full shadow-sm border border-slate-100 p-0.5 scale-90">
+                         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1 bg-white rounded-full shadow-sm border border-slate-100 p-0.5 scale-90">
+                             <button onClick={(e) => { e.stopPropagation(); changeIndentation(index, 'out'); }} className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded-full" title="Outdent"><IconOutdent className="w-3 h-3" /></button>
+                             <button onClick={(e) => { e.stopPropagation(); changeIndentation(index, 'in'); }} className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded-full" title="Indent"><IconIndent className="w-3 h-3" /></button>
+                             
+                             <div className="w-px h-3 bg-slate-200 mx-0.5 my-auto"></div>
+
                              <button onClick={(e) => { e.stopPropagation(); moveStep(index, 'up'); }} className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded-full"><IconArrowUp className="w-3 h-3" /></button>
                              <button onClick={(e) => { e.stopPropagation(); moveStep(index, 'down'); }} className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded-full"><IconArrowDown className="w-3 h-3" /></button>
                              <button onClick={(e) => { e.stopPropagation(); deleteStep(step.id); }} className="p-1 hover:text-red-500 hover:bg-red-50 rounded-full"><IconTrash className="w-3 h-3" /></button>
@@ -621,14 +754,10 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
                     </div>
                   ))}
                   
-                  <div className="grid grid-cols-2 gap-2 mt-4">
-                      <button onClick={handleCapture} className="py-4 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex flex-col items-center justify-center gap-2 group">
+                  <div className="mt-4">
+                      <button onClick={handleCapture} className="w-full py-4 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex flex-col items-center justify-center gap-2 group">
                             <IconCamera className="w-5 h-5" />
-                            <span className="text-xs font-bold">Snap</span>
-                      </button>
-                      <button onClick={onRecordRequest} className="py-4 border-2 border-dashed border-pink-200 rounded-2xl text-pink-400 hover:border-pink-400 hover:text-pink-600 hover:bg-pink-50/50 transition-all flex flex-col items-center justify-center gap-2 group">
-                            <IconGlobe className="w-5 h-5" />
-                            <span className="text-xs font-bold">Record</span>
+                            <span className="text-xs font-bold">Snap Screenshot</span>
                       </button>
                   </div>
             </div>
@@ -642,9 +771,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
          </div>
       </div>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        {/* Navbar */}
         <div className="h-20 flex items-center justify-between px-8 z-20 shrink-0">
           <div className="flex-1">
             <input 
@@ -656,7 +783,6 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
           </div>
 
           <div className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-soft border border-indigo-50">
-             {/* Tool Bar */}
              <div className="flex gap-1 px-2 border-r border-slate-100">
                  {[
                     { id: 'number', icon: <span className="font-bold text-xs">1</span> },
@@ -703,7 +829,6 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
           </div>
         </div>
 
-        {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto p-8 flex justify-center custom-scrollbar">
             {selectedStep ? (
                 <div className="card w-full max-w-5xl bg-white shadow-xl rounded-[2rem] min-h-[800px] transition-all border border-white/60 mb-20">
@@ -722,15 +847,30 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
                                     <IconWand className="w-4 h-4" /> AI Auto-Analyze
                                 </button>
                             </div>
-                            <input 
-                                value={selectedStep.title}
-                                onChange={(e) => updateStep(selectedStep.id, { title: e.target.value })}
-                                className="input input-ghost text-4xl font-black w-full px-0 focus:bg-transparent text-slate-800 placeholder:text-slate-200"
-                                placeholder="What is this step?"
-                            />
+                            
+                            <div className="flex gap-2 items-center w-full">
+                                <select 
+                                    value={selectedStep.headingLevel || 'h2'}
+                                    onChange={(e) => updateStep(selectedStep.id, { headingLevel: e.target.value as any })}
+                                    className="select select-bordered select-sm w-24 bg-slate-50 font-bold text-slate-600"
+                                    title="Heading Level"
+                                >
+                                    <option value="h1">H1</option>
+                                    <option value="h2">H2</option>
+                                    <option value="h3">H3</option>
+                                    <option value="h4">H4</option>
+                                    <option value="h5">H5</option>
+                                    <option value="h6">H6</option>
+                                </select>
+                                <input 
+                                    value={selectedStep.title}
+                                    onChange={(e) => updateStep(selectedStep.id, { title: e.target.value })}
+                                    className="input input-ghost text-4xl font-black w-full px-2 focus:bg-slate-50 text-slate-800 placeholder:text-slate-200"
+                                    placeholder="What is this step?"
+                                />
+                            </div>
                         </div>
 
-                        {/* Moved Buttons Outside */}
                         <div className="flex justify-end gap-2 mb-2">
                              <input type="file" ref={replaceFileInputRef} className="hidden" accept="image/*" onChange={handleReplaceUpload} />
                              <button onClick={() => replaceFileInputRef.current?.click()} className="btn btn-sm bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600 shadow-sm gap-2 rounded-full">
@@ -785,6 +925,13 @@ export default function GuideEditor({ initialGuide, onSave, onBack, onRecordRequ
                 </div>
             )}
         </div>
+        
+        <video 
+            ref={captureVideoRef} 
+            className="fixed top-0 left-0 w-1 h-1 opacity-0 pointer-events-none" 
+            muted 
+            playsInline 
+        />
       </div>
     </div>
   );

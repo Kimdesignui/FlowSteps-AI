@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import GuideEditor from './components/GuideEditor';
-import WebRecorder from './components/WebRecorder';
 import Dashboard from './components/Dashboard';
 import ProjectView from './components/ProjectView';
 import { DocStep, Guide, Project } from './types';
@@ -9,12 +8,10 @@ import { saveGuide, getGuideById, saveProject, getProjectById } from './services
 type ViewState = 
     | { type: 'dashboard' }
     | { type: 'editor', guideId?: string, projectId?: string } // if projectId is present, we return to project view
-    | { type: 'recorder', returnToEditor?: boolean }
     | { type: 'project', projectId: string };
 
 export default function App() {
     const [currentView, setCurrentView] = useState<ViewState>({ type: 'dashboard' });
-    const [tempCapturedImages, setTempCapturedImages] = useState<string[]>([]);
 
     // --- Navigation Handlers ---
 
@@ -61,32 +58,12 @@ export default function App() {
              }
              // We don't change view immediately to allow user to continue editing if they just hit save
         }
-    };
-
-    const handleRecorderFinish = (images: string[]) => {
-        // If we came from dashboard (Record Flow button), create a new guide with these images
-        // If we came from editor (Record button inside), append to that guide (not implemented fully in this simple flow, assuming new guide for simplicity or we can pass images back)
         
-        // Simpler flow: Record Flow always creates a NEW guide for now
-        const newGuide: Guide = {
-            id: Date.now().toString(),
-            metadata: {
-                title: 'Recorded Flow ' + new Date().toLocaleTimeString(),
-                author: 'User',
-                date: new Date().toLocaleDateString()
-            },
-            steps: images.map((img, idx) => ({
-                id: Date.now().toString() + idx,
-                image: img,
-                title: `Step ${idx + 1}`,
-                description: 'Recorded step.',
-                annotations: [],
-                isProcessing: false
-            })),
-            lastModified: Date.now()
-        };
-        saveGuide(newGuide);
-        navigateToEditGuide(newGuide.id);
+        // If we were creating a NEW guide, switch the view to "edit" mode for this specific guide
+        // This ensures subsequent saves or back navigation know which guide we are working on.
+        if (currentView.type === 'editor' && !currentView.guideId) {
+             setCurrentView(prev => ({ ...prev, guideId: guide.id }));
+        }
     };
 
     const handleBackFromEditor = () => {
@@ -106,7 +83,6 @@ export default function App() {
                 onCreateProject={handleCreateProject}
                 onEditGuide={navigateToEditGuide}
                 onViewProject={navigateToProject}
-                onRecordFlow={() => setCurrentView({ type: 'recorder' })}
             />
         );
     }
@@ -122,15 +98,6 @@ export default function App() {
         );
     }
 
-    if (currentView.type === 'recorder') {
-        return (
-            <WebRecorder 
-                onFinish={handleRecorderFinish}
-                onCancel={navigateToDashboard}
-            />
-        );
-    }
-
     if (currentView.type === 'editor') {
         const initialGuide = currentView.guideId ? getGuideById(currentView.guideId) : null;
         // Key is important to force re-mount when switching between guides or creating new one
@@ -140,7 +107,6 @@ export default function App() {
                     initialGuide={initialGuide || null}
                     onSave={handleSaveGuide}
                     onBack={handleBackFromEditor}
-                    onRecordRequest={() => setCurrentView({ type: 'recorder', returnToEditor: true })}
                 />
             </React.Fragment>
         );

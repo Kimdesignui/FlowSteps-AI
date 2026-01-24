@@ -16,6 +16,8 @@ export interface DocStep {
   image: string; // Base64 data URI
   title: string;
   description: string;
+  headingLevel: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  indentation: number; // 0 (root), 1 (child), 2 (grandchild)
   annotations: Annotation[];
   isProcessing?: boolean;
 }

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Annotation } from '../types';
-import { IconCrop, IconX } from './Icons';
+import { IconCrop, IconX, IconCheck } from './Icons';
 
 interface ImageEditorProps {
   imageSrc: string;
@@ -401,19 +401,32 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                     height: `${currentDragRect.h}%`,
                     cursor: 'crosshair',
                 }}
+            />
+            {/* Toolbar - Smart positioned */}
+            <div 
+                className="absolute z-50 flex gap-3 bg-slate-800 p-2 rounded-xl shadow-2xl transform -translate-x-1/2 border border-slate-700"
+                style={{
+                    left: `${currentDragRect.x + currentDragRect.w / 2}%`,
+                    top: (currentDragRect.y + currentDragRect.h > 80) 
+                         ? `calc(${currentDragRect.y}% - 60px)` 
+                         : `calc(${currentDragRect.y + currentDragRect.h}% + 16px)`,
+                    pointerEvents: 'auto'
+                }}
+                onMouseDown={(e) => e.stopPropagation()} 
+                onMouseUp={(e) => e.stopPropagation()}
             >
-                <div 
-                    className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 flex gap-2 pointer-events-auto bg-white p-1 rounded-full shadow-xl"
-                    onMouseDown={(e) => e.stopPropagation()} 
-                    onMouseUp={(e) => { e.stopPropagation(); handleMouseUp(e); }}
+                <button 
+                    onClick={performCrop} 
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-sm transition-colors shadow-lg"
                 >
-                    <button onClick={performCrop} className="btn btn-xs btn-circle btn-success text-white shadow-lg tooltip" data-tip="Cắt">
-                        <IconCrop className="w-3 h-3" />
-                    </button>
-                    <button onClick={cancelCrop} className="btn btn-xs btn-circle btn-ghost text-slate-500 hover:bg-slate-100 tooltip" data-tip="Hủy">
-                        <IconX className="w-3 h-3" />
-                    </button>
-                </div>
+                    <IconCheck className="w-4 h-4" /> Áp dụng
+                </button>
+                <button 
+                    onClick={cancelCrop} 
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-bold text-sm transition-colors"
+                >
+                    <IconX className="w-4 h-4" /> Hủy
+                </button>
             </div>
          </>
       )}

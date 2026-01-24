@@ -70,7 +70,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
             type: 'text',
             x: coords.x,
             y: coords.y,
-            text: 'Text',
+            text: 'Nhập chữ',
             color: activeColor,
             fontSize: 16
         };
@@ -180,7 +180,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
       const ann = annotations.find(a => a.id === id);
       if (!ann) return;
       
-      const newNum = prompt("Edit number:", ann.text);
+      const newNum = prompt("Sửa số:", ann.text);
       if (newNum !== null) {
           onChange(annotations.map(a => a.id === id ? { ...a, text: newNum } : a));
       }
@@ -226,7 +226,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
         className="absolute -top-3 -right-3 btn btn-circle btn-xs bg-red-500 border-2 border-white text-white shadow-lg cursor-pointer z-50 hover:scale-110 hover:bg-red-600 transition-transform flex items-center justify-center"
         onMouseDown={(e) => e.stopPropagation()} // Prevent drag start
         onClick={onClick}
-        title="Delete"
+        title="Xóa"
     >
         <IconX className="w-3 h-3 pointer-events-none" />
     </div>
@@ -304,7 +304,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
               style={{ left: `${ann.x}%`, top: `${ann.y}%`, backgroundColor: ann.color || '#f97316', color: 'white' }}
               onMouseDown={(e) => handleAnnotationMouseDown(e, ann.id, ann.x, ann.y)}
               onDoubleClick={() => editNumber(ann.id)}
-              title="Drag to move, Double click to edit"
+              title="Kéo để di chuyển, Nhấp đúp để sửa số"
             >
               {ann.text}
               <div className="hidden group-hover/ann:block">
@@ -407,10 +407,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                     onMouseDown={(e) => e.stopPropagation()} 
                     onMouseUp={(e) => { e.stopPropagation(); handleMouseUp(e); }}
                 >
-                    <button onClick={performCrop} className="btn btn-xs btn-circle btn-success text-white shadow-lg tooltip" data-tip="Crop">
+                    <button onClick={performCrop} className="btn btn-xs btn-circle btn-success text-white shadow-lg tooltip" data-tip="Cắt">
                         <IconCrop className="w-3 h-3" />
                     </button>
-                    <button onClick={cancelCrop} className="btn btn-xs btn-circle btn-ghost text-slate-500 hover:bg-slate-100 tooltip" data-tip="Cancel">
+                    <button onClick={cancelCrop} className="btn btn-xs btn-circle btn-ghost text-slate-500 hover:bg-slate-100 tooltip" data-tip="Hủy">
                         <IconX className="w-3 h-3" />
                     </button>
                 </div>

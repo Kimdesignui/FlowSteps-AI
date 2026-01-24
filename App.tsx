@@ -26,7 +26,7 @@ export default function App() {
     // --- Action Handlers ---
 
     const handleCreateProject = () => {
-        const title = prompt("Enter project title:");
+        const title = prompt("Nhập tên dự án mới:");
         if (title) {
             const newProject: Project = {
                 id: Date.now().toString(),

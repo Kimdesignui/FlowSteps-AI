@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Schema } from "@google/genai";
 
 const getClient = () => {
   const apiKey = process.env.API_KEY;
@@ -8,14 +8,15 @@ const getClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+// --- Analyze Screenshot for Title & Description ---
 export const analyzeScreenshot = async (base64Image: string): Promise<{ title: string; description: string }> => {
   try {
     const ai = getClient();
-    // Remove header if present (data:image/png;base64,)
-    const cleanBase64 = base64Image.split(',')[1] || base64Image;
+    // Ensure base64 is clean
+    const cleanBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3-flash-preview", 
       contents: {
         parts: [
           {
@@ -25,7 +26,7 @@ export const analyzeScreenshot = async (base64Image: string): Promise<{ title: s
             },
           },
           {
-            text: "Analyze this UI screenshot for a user guide. \n1. Title: Create a short, action-oriented title starting with a verb (e.g., 'Click the Submit Button'). \n2. Description: Write a clear instruction explaining exactly what the user should do in this step and why. Keep it helpful for a manual.",
+            text: "Bạn là chuyên gia viết tài liệu kỹ thuật. Hãy phân tích ảnh chụp màn hình UI này. \n1. Title: Tạo một tiêu đề ngắn gọn, bắt đầu bằng động từ (ví dụ: 'Nhấn nút Gửi', 'Truy cập Cài đặt') bằng tiếng Việt. \n2. Description: Viết hướng dẫn rõ ràng, súc tích giải thích chính xác người dùng cần làm gì ở bước này và tại sao. Viết bằng tiếng Việt, giọng văn hướng dẫn sử dụng.",
           },
         ],
       },
@@ -34,8 +35,8 @@ export const analyzeScreenshot = async (base64Image: string): Promise<{ title: s
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            title: { type: Type.STRING },
-            description: { type: Type.STRING },
+            title: { type: Type.STRING, description: "Tiêu đề hành động (Tiếng Việt)" },
+            description: { type: Type.STRING, description: "Hướng dẫn chi tiết (Tiếng Việt)" },
           },
           required: ["title", "description"],
         },
@@ -43,22 +44,23 @@ export const analyzeScreenshot = async (base64Image: string): Promise<{ title: s
     });
 
     const text = response.text;
-    if (!text) return { title: "New Step", description: "Add description here." };
+    if (!text) return { title: "Đã chụp bước", description: "Vui lòng thêm mô tả thủ công." };
 
     return JSON.parse(text);
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
     return {
-      title: "Step Captured",
-      description: "Could not automatically analyze image. Please add details manually.",
+      title: "Đã chụp bước",
+      description: "Không thể tự động phân tích ảnh. Vui lòng nhập chi tiết thủ công.",
     };
   }
 };
 
+// --- Improve/Enhance Description ---
 export const generateStepDescription = async (base64Image: string, currentTitle: string, currentDescription: string): Promise<string> => {
     try {
         const ai = getClient();
-        const cleanBase64 = base64Image.split(',')[1] || base64Image;
+        const cleanBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
@@ -71,11 +73,12 @@ export const generateStepDescription = async (base64Image: string, currentTitle:
                         },
                     },
                     {
-                        text: `Based on this screenshot and the current context, write a detailed and professional user guide description.
-                        Current Title: "${currentTitle}"
-                        Current Draft: "${currentDescription}"
+                        text: `Đóng vai một người viết tài liệu kỹ thuật chuyên nghiệp. Hãy cải thiện nội dung hướng dẫn sau dựa trên ngữ cảnh ảnh chụp màn hình.
                         
-                        Task: Write a polished, easy-to-understand paragraph describing the action shown in the image. Explain what is happening and any important details the user should notice. Keep it under 3 sentences.`,
+                        Tiêu đề hiện tại: "${currentTitle}"
+                        Nháp hiện tại: "${currentDescription}"
+                        
+                        Nhiệm vụ: Viết lại bản nháp để chuyên nghiệp hơn, rõ ràng và súc tích hơn bằng Tiếng Việt. Đảm bảo nó phản ánh chính xác ảnh chụp màn hình. CHỈ trả về văn bản mô tả đã viết lại.`,
                     },
                 ],
             },
@@ -87,3 +90,23 @@ export const generateStepDescription = async (base64Image: string, currentTitle:
         return currentDescription;
     }
 };
+
+// --- Chat with AI Assistant ---
+export const chatWithAI = async (message: string, history: {role: string, parts: {text: string}[]}[]): Promise<string> => {
+    try {
+        const ai = getClient();
+        const chat = ai.chats.create({
+            model: "gemini-3-flash-preview",
+            config: {
+                systemInstruction: "Bạn là Trợ lý AI hữu ích cho công cụ viết tài liệu 'FlowSteps AI'. Mục tiêu của bạn là giúp người dùng viết hướng dẫn sử dụng tốt hơn, gợi ý cải thiện sự rõ ràng, kiểm tra ngữ pháp tiếng Việt và cung cấp mẹo viết tài liệu kỹ thuật. Hãy trả lời ngắn gọn, hữu ích và LUÔN LUÔN dùng Tiếng Việt.",
+            },
+            history: history,
+        });
+
+        const result = await chat.sendMessage({ message });
+        return result.text || "Xin lỗi, tôi không thể tạo phản hồi.";
+    } catch (error) {
+        console.error("Gemini Chat Error:", error);
+        return "Xin lỗi, tôi gặp lỗi khi kết nối với AI.";
+    }
+}

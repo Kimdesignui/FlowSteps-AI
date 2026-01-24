@@ -35,23 +35,23 @@ const ProjectView: React.FC<ProjectViewProps> = ({ projectId, onBack, onEditGuid
         setGuides(guides.filter(g => g.id !== guideId));
     };
 
-    if (!project) return <div>Project not found</div>;
+    if (!project) return <div>Không tìm thấy dự án</div>;
 
     return (
         <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
             <div className="max-w-5xl mx-auto">
                 <button onClick={onBack} className="mb-6 flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-medium">
-                    <IconHome className="w-4 h-4" /> Dashboard
+                    <IconHome className="w-4 h-4" /> Bảng điều khiển
                 </button>
                 
                 <div className="flex justify-between items-end mb-10 border-b border-slate-200 pb-8">
                     <div>
-                        <div className="uppercase tracking-widest text-xs font-bold text-indigo-500 mb-2">Project</div>
+                        <div className="uppercase tracking-widest text-xs font-bold text-indigo-500 mb-2">Dự án</div>
                         <h1 className="text-4xl font-black text-slate-900">{project.title}</h1>
-                        <p className="text-slate-500 mt-2">{guides.length} Guides in this collection</p>
+                        <p className="text-slate-500 mt-2">{guides.length} hướng dẫn trong bộ sưu tập này</p>
                     </div>
                     <button onClick={() => onCreateGuideForProject(projectId)} className="btn btn-primary gap-2 shadow-glow text-white border-none gradient-bg">
-                        <IconPlus className="w-4 h-4" /> Add Guide
+                        <IconPlus className="w-4 h-4" /> Thêm hướng dẫn
                     </button>
                 </div>
 
@@ -59,8 +59,8 @@ const ProjectView: React.FC<ProjectViewProps> = ({ projectId, onBack, onEditGuid
                     {guides.length === 0 ? (
                         <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 bg-white">
                             <IconFileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                            <h3 className="text-lg font-bold text-slate-600">This project is empty</h3>
-                            <p>Create a new guide to get started.</p>
+                            <h3 className="text-lg font-bold text-slate-600">Dự án này đang trống</h3>
+                            <p>Tạo hướng dẫn mới để bắt đầu.</p>
                         </div>
                     ) : (
                         guides.map((guide, index) => (
@@ -75,11 +75,11 @@ const ProjectView: React.FC<ProjectViewProps> = ({ projectId, onBack, onEditGuid
                                     <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors cursor-pointer" onClick={() => onEditGuide(guide.id)}>
                                         {guide.metadata.title}
                                     </h3>
-                                    <p className="text-sm text-slate-400 mt-1">{guide.steps.length} steps • Last updated {new Date(guide.lastModified).toLocaleDateString()}</p>
+                                    <p className="text-sm text-slate-400 mt-1">{guide.steps.length} bước • Cập nhật lần cuối {new Date(guide.lastModified).toLocaleDateString('vi-VN')}</p>
                                 </div>
                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => onEditGuide(guide.id)} className="btn btn-sm btn-ghost text-indigo-600">Edit</button>
-                                    <button onClick={() => handleRemoveGuide(guide.id)} className="btn btn-sm btn-ghost text-red-400 hover:bg-red-50">Remove</button>
+                                    <button onClick={() => onEditGuide(guide.id)} className="btn btn-sm btn-ghost text-indigo-600">Sửa</button>
+                                    <button onClick={() => handleRemoveGuide(guide.id)} className="btn btn-sm btn-ghost text-red-400 hover:bg-red-50">Xóa khỏi dự án</button>
                                 </div>
                             </div>
                         ))

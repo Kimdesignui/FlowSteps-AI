@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DocStep, ProjectMetadata, Annotation, Guide } from '../types';
 import ImageEditor from './ImageEditor';
 import { analyzeScreenshot, generateStepDescription } from '../services/geminiService';
+import ChatAssistant from './ChatAssistant';
 import { IconPlus, IconTrash, IconDownload, IconCamera, IconWand, IconArrowUp, IconArrowDown, IconGlobe, IconType, IconSquare, IconCircle, IconCrop, IconFileCode, IconFileText, IconArrowRight, IconUndo, IconRedo, IconEye, IconX, IconList, IconRefresh, IconImage, IconSparkles, IconCopy, IconCheck, IconSave, IconHome, IconBold, IconItalic, IconIndent, IconOutdent } from './Icons';
 
 // --- Extended WYSIWYG Editor Component ---
@@ -60,10 +61,10 @@ const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChang
                     onChange={(e) => exec('fontSize', e.target.value)}
                     defaultValue="3"
                 >
-                    <option value="1">Small</option>
-                    <option value="3">Normal</option>
-                    <option value="5">Large</option>
-                    <option value="7">Huge</option>
+                    <option value="1">Nhỏ</option>
+                    <option value="3">Vừa</option>
+                    <option value="5">Lớn</option>
+                    <option value="7">Rất lớn</option>
                 </select>
 
                 <div className="w-px h-4 bg-slate-300 mx-2"></div>
@@ -71,14 +72,14 @@ const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChang
                 <button 
                     onClick={() => exec('bold')} 
                     className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors ${activeFormats.includes('bold') ? 'bg-slate-200 text-indigo-600' : ''}`}
-                    title="Bold"
+                    title="In đậm"
                 >
                     <IconBold className="w-4 h-4" />
                 </button>
                 <button 
                     onClick={() => exec('italic')} 
                     className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors ${activeFormats.includes('italic') ? 'bg-slate-200 text-indigo-600' : ''}`}
-                    title="Italic"
+                    title="In nghiêng"
                 >
                     <IconItalic className="w-4 h-4" />
                 </button>
@@ -88,7 +89,7 @@ const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChang
                 <button 
                     onClick={() => exec('insertUnorderedList')} 
                     className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors ${activeFormats.includes('list') ? 'bg-slate-200 text-indigo-600' : ''}`}
-                    title="Bullet List"
+                    title="Danh sách"
                 >
                     <IconList className="w-4 h-4" />
                 </button>
@@ -247,7 +248,7 @@ const DocumentPreview = ({
                 <div className="flex-1 gap-4">
                      <h2 className="font-bold text-xl text-indigo-900 flex items-center gap-2">
                         <span className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-pink-500 rounded-full"></span>
-                        Preview Mode
+                        Chế độ xem trước
                      </h2>
                      {isPreparing && <span className="loading loading-spinner text-primary loading-sm"></span>}
                 </div>
@@ -263,7 +264,7 @@ const DocumentPreview = ({
                         }`}
                     >
                         {copySuccess ? <IconCheck className="w-4 h-4" /> : <IconCopy className="w-4 h-4" />}
-                        {copySuccess ? 'Copied!' : 'Copy to Docs'}
+                        {copySuccess ? 'Đã sao chép!' : 'Sao chép vào Docs'}
                     </button>
 
                     <div className="h-6 w-px bg-slate-200 mx-1"></div>
@@ -283,7 +284,7 @@ const DocumentPreview = ({
             <div className="flex flex-1 overflow-hidden">
                 <div className="w-80 bg-white border-r border-indigo-50 h-full overflow-y-auto p-6 hidden lg:block shrink-0 custom-scrollbar">
                     <h3 className="font-bold text-slate-400 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
-                        <IconList className="w-4 h-4" /> Table of Contents
+                        <IconList className="w-4 h-4" /> Mục lục
                     </h3>
                     <ul className="space-y-2 relative">
                          <div className="absolute left-[15px] top-4 bottom-4 w-px bg-indigo-50 -z-10"></div>
@@ -306,7 +307,7 @@ const DocumentPreview = ({
                     <div className="w-[850px] bg-white shadow-xl p-16 min-h-screen rounded-3xl border border-white mb-20">
                         <h1 className="text-5xl font-extrabold text-slate-900 border-b-2 border-indigo-100 pb-8 mb-6 tracking-tight">{metadata.title}</h1>
                         <div className="flex justify-between text-slate-500 font-medium mb-12 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-400"></span> Author: {metadata.author}</span>
+                            <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-400"></span> Tác giả: {metadata.author}</span>
                             <span>{metadata.date}</span>
                         </div>
                         
@@ -321,7 +322,7 @@ const DocumentPreview = ({
                                     
                                     <div className="relative inline-block mb-8 border-4 border-slate-100 rounded-xl overflow-hidden shadow-lg max-w-full group hover:border-indigo-100 transition-colors">
                                         <img src={step.image} alt="step" className="max-w-full h-auto block" />
-                                        {step.annotations.length > 0 && <div className="absolute top-2 right-2 badge badge-info text-white text-xs opacity-80">Annotations active</div>}
+                                        {step.annotations.length > 0 && <div className="absolute top-2 right-2 badge badge-info text-white text-xs opacity-80">Có chú thích</div>}
                                     </div>
                                     <div className="bg-slate-50 border-l-4 border-indigo-500 rounded-r-xl p-6 shadow-sm">
                                         <div 
@@ -359,9 +360,9 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
   const [activeStyle, setActiveStyle] = useState<'outline' | 'fill'>('outline');
 
   const [metadata, setMetadata] = useState<ProjectMetadata>(initialGuide?.metadata || {
-    title: 'New Guide',
-    author: 'Author',
-    date: new Date().toLocaleDateString(),
+    title: 'Hướng dẫn mới',
+    author: 'Tác giả',
+    date: new Date().toLocaleDateString('vi-VN'),
   });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -484,8 +485,8 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
     const newStep: DocStep = {
       id: id,
       image: base64Image,
-      title: 'Processing...',
-      description: 'Analyzing...',
+      title: 'Đang xử lý...',
+      description: 'Đang phân tích...',
       headingLevel: 'h2', 
       indentation: 0,
       annotations: [],
@@ -507,7 +508,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
         ));
     } catch (e) {
         setSteps(prev => prev.map(s => 
-            s.id === id ? { ...s, title: 'Step Captured', description: 'Analysis failed.', isProcessing: false } : s
+            s.id === id ? { ...s, title: 'Bước đã chụp', description: 'Phân tích thất bại.', isProcessing: false } : s
         ));
     }
   };
@@ -607,14 +608,14 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
       <body>
           <h1>${metadata.title}</h1>
           <div class="meta">
-              By ${metadata.author} • ${metadata.date}
+              Tác giả: ${metadata.author} • ${metadata.date}
           </div>
       `;
   
       if (includeTOC) {
           content += `
           <div class="toc">
-              <h3>Table of Contents</h3>
+              <h3>Mục lục</h3>
               <ul>
                   ${steps.map((step, i) => `
                       <li style="padding-left: ${step.indentation * 15}px">
@@ -696,6 +697,9 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
   return (
     <div className="flex h-screen w-full bg-base-200 font-sans text-slate-800">
       
+      {/* Include the Chat Assistant here */}
+      <ChatAssistant />
+
       {isPreviewMode && (
           <DocumentPreview 
             steps={steps} 
@@ -711,7 +715,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
          <div className="bg-white rounded-3xl shadow-soft h-full flex flex-col overflow-hidden border border-white/50">
             <div className="p-6 border-b border-indigo-50 bg-gradient-to-r from-white to-indigo-50/30">
                  <button onClick={onBack} className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-indigo-600 mb-2 flex items-center gap-1">
-                     <IconHome className="w-3 h-3" /> Dashboard
+                     <IconHome className="w-3 h-3" /> Bảng điều khiển
                  </button>
                  <h1 className="text-2xl font-black gradient-text flex items-center gap-2 tracking-tight">
                     <span className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-pink-500 rounded-lg flex items-center justify-center text-white text-sm shadow-lg shadow-indigo-300">FS</span> 
@@ -737,13 +741,13 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                              </div>
                              <div className="flex-1 min-w-0">
                                 <h3 className={`font-bold text-sm truncate ${selectedStepId === step.id ? 'text-indigo-900' : 'text-slate-700'}`}>{step.title}</h3>
-                                <p className="text-xs opacity-60 truncate mt-0.5">{step.isProcessing ? '✨ Analyzing...' : step.description.replace(/<[^>]+>/g, '')}</p>
+                                <p className="text-xs opacity-60 truncate mt-0.5">{step.isProcessing ? '✨ Đang phân tích...' : step.description.replace(/<[^>]+>/g, '')}</p>
                              </div>
                         </div>
                          
                          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1 bg-white rounded-full shadow-sm border border-slate-100 p-0.5 scale-90">
-                             <button onClick={(e) => { e.stopPropagation(); changeIndentation(index, 'out'); }} className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded-full" title="Outdent"><IconOutdent className="w-3 h-3" /></button>
-                             <button onClick={(e) => { e.stopPropagation(); changeIndentation(index, 'in'); }} className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded-full" title="Indent"><IconIndent className="w-3 h-3" /></button>
+                             <button onClick={(e) => { e.stopPropagation(); changeIndentation(index, 'out'); }} className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded-full" title="Thụt lề ra"><IconOutdent className="w-3 h-3" /></button>
+                             <button onClick={(e) => { e.stopPropagation(); changeIndentation(index, 'in'); }} className="p-1 hover:text-indigo-600 hover:bg-indigo-50 rounded-full" title="Thụt lề vào"><IconIndent className="w-3 h-3" /></button>
                              
                              <div className="w-px h-3 bg-slate-200 mx-0.5 my-auto"></div>
 
@@ -757,14 +761,14 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                   <div className="mt-4">
                       <button onClick={handleCapture} className="w-full py-4 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex flex-col items-center justify-center gap-2 group">
                             <IconCamera className="w-5 h-5" />
-                            <span className="text-xs font-bold">Snap Screenshot</span>
+                            <span className="text-xs font-bold">Chụp màn hình</span>
                       </button>
                   </div>
             </div>
 
             <div className="p-4 border-t border-indigo-50 bg-slate-50/50">
                 <button onClick={() => fileInputRef.current?.click()} className="btn btn-block bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 text-slate-600 rounded-xl shadow-sm gap-2 normal-case font-semibold">
-                    <IconPlus className="w-4 h-4"/> Upload Image
+                    <IconPlus className="w-4 h-4"/> Tải ảnh lên
                 </button>
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
             </div>
@@ -778,7 +782,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                 value={metadata.title}
                 onChange={(e) => setMetadata({...metadata, title: e.target.value})}
                 className="input input-ghost text-2xl font-black text-slate-800 w-full max-w-lg px-0 hover:bg-transparent focus:bg-transparent placeholder:text-slate-300"
-                placeholder="Name your guide..."
+                placeholder="Đặt tên hướng dẫn..."
             />
           </div>
 
@@ -809,7 +813,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                     <input type="color" value={activeColor} onChange={(e) => setActiveColor(e.target.value)} className="absolute -top-2 -left-2 w-10 h-10 p-0 border-0 cursor-pointer"/>
                 </div>
                 <button onClick={() => setActiveStyle(activeStyle === 'fill' ? 'outline' : 'fill')} className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 px-2 py-1 rounded text-slate-500 hover:bg-slate-200">
-                    {activeStyle === 'fill' ? 'Fill' : 'Ln'}
+                    {activeStyle === 'fill' ? 'Đầy' : 'Viền'}
                 </button>
              </div>
 
@@ -820,11 +824,11 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
 
              <button onClick={handleManualSave} className={`btn btn-sm btn-ghost gap-2 rounded-full ${saveStatus === 'saved' ? 'text-green-600' : 'text-slate-600'}`}>
                  {saveStatus === 'saved' ? <IconCheck className="w-4 h-4" /> : <IconSave className="w-4 h-4" />}
-                 {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+                 {saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'saved' ? 'Đã lưu' : 'Lưu'}
              </button>
 
              <button onClick={() => setIsPreviewMode(true)} className="btn btn-primary rounded-full px-6 shadow-glow border-none gradient-bg text-white ml-2">
-                <IconEye className="w-4 h-4" /> Preview
+                <IconEye className="w-4 h-4" /> Xem trước
              </button>
           </div>
         </div>
@@ -835,7 +839,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                     <div className="card-body p-10">
                         <div className="flex flex-col gap-2 mb-8">
                             <div className="flex justify-between items-center pb-2">
-                                <span className="badge badge-lg bg-indigo-50 text-indigo-700 border-none font-bold uppercase tracking-widest text-xs py-3 px-4">Step {steps.findIndex(s => s.id === selectedStep.id) + 1}</span>
+                                <span className="badge badge-lg bg-indigo-50 text-indigo-700 border-none font-bold uppercase tracking-widest text-xs py-3 px-4">Bước {steps.findIndex(s => s.id === selectedStep.id) + 1}</span>
                                 <button 
                                     onClick={async () => {
                                         updateStep(selectedStep.id, { isProcessing: true });
@@ -844,7 +848,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                                     }}
                                     className="btn btn-ghost btn-sm text-indigo-600 gap-2 hover:bg-indigo-50 rounded-full font-semibold"
                                 >
-                                    <IconWand className="w-4 h-4" /> AI Auto-Analyze
+                                    <IconWand className="w-4 h-4" /> AI Phân tích lại
                                 </button>
                             </div>
                             
@@ -866,7 +870,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                                     value={selectedStep.title}
                                     onChange={(e) => updateStep(selectedStep.id, { title: e.target.value })}
                                     className="input input-ghost text-4xl font-black w-full px-2 focus:bg-slate-50 text-slate-800 placeholder:text-slate-200"
-                                    placeholder="What is this step?"
+                                    placeholder="Bước này làm gì?"
                                 />
                             </div>
                         </div>
@@ -874,10 +878,10 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                         <div className="flex justify-end gap-2 mb-2">
                              <input type="file" ref={replaceFileInputRef} className="hidden" accept="image/*" onChange={handleReplaceUpload} />
                              <button onClick={() => replaceFileInputRef.current?.click()} className="btn btn-sm bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600 shadow-sm gap-2 rounded-full">
-                                <IconImage className="w-4 h-4" /> Replace Image
+                                <IconImage className="w-4 h-4" /> Thay ảnh
                              </button>
                              <button onClick={handleReplaceCapture} className="btn btn-sm bg-white border border-slate-200 text-indigo-600 hover:border-indigo-300 shadow-sm gap-2 rounded-full">
-                                <IconRefresh className="w-4 h-4" /> Retake
+                                <IconRefresh className="w-4 h-4" /> Chụp lại
                              </button>
                         </div>
 
@@ -896,21 +900,21 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                         <div className="mt-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
                             <div className="flex justify-between items-center mb-3">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                    <IconFileText className="w-3 h-3" /> Description
+                                    <IconFileText className="w-3 h-3" /> Mô tả
                                 </label>
                                 <button 
                                     onClick={handleAiDescription}
                                     disabled={isAiGenerating}
                                     className="btn btn-xs btn-outline border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 gap-1 rounded-full"
                                 >
-                                    <IconSparkles className="w-3 h-3" /> {isAiGenerating ? 'Writing...' : 'AI Enhance'}
+                                    <IconSparkles className="w-3 h-3" /> {isAiGenerating ? 'Đang viết...' : 'AI Viết lại'}
                                 </button>
                             </div>
                             
                             <SimpleEditor 
                                 value={selectedStep.description}
                                 onChange={(val) => updateStep(selectedStep.id, { description: val })}
-                                placeholder="Explain this step clearly..."
+                                placeholder="Mô tả bước này một cách rõ ràng..."
                             />
                         </div>
                     </div>
@@ -920,8 +924,8 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                     <div className="w-32 h-32 bg-indigo-100 rounded-full flex items-center justify-center mb-6 animate-pulse">
                         <IconCamera className="w-16 h-16 text-indigo-300" />
                     </div>
-                    <h1 className="text-3xl font-black text-slate-300">Ready to Create?</h1>
-                    <p className="mt-2 font-medium text-slate-400">Snap a screenshot or upload an image to begin.</p>
+                    <h1 className="text-3xl font-black text-slate-300">Sẵn sàng tạo chưa?</h1>
+                    <p className="mt-2 font-medium text-slate-400">Chụp màn hình hoặc tải ảnh lên để bắt đầu.</p>
                 </div>
             )}
         </div>

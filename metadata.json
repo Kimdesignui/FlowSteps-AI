@@ -1,6 +1,6 @@
 {
-  "name": "FlowSteps AI - Guide Creator",
-  "description": "An AI-powered documentation tool similar to Tango/Kommodo. Capture steps, annotate screenshots, and generate PDF guides instantly.",
+  "name": "FlowSteps AI - Trình tạo hướng dẫn",
+  "description": "Công cụ viết tài liệu thông minh hỗ trợ bởi AI. Chụp các bước, chú thích ảnh màn hình và tạo hướng dẫn PDF/Word tức thì.",
   "requestFramePermissions": [
     "camera",
     "microphone",

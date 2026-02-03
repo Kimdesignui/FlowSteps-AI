@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { IconGlobe, IconCamera, IconStop, IconExternalLink, IconWand } from './Icons';
+import { IconGlobe, IconCamera, IconStop, IconExternalLink, IconWand, IconShield } from './Icons';
 
 interface WebRecorderProps {
   onFinish: (capturedImages: string[]) => void;
@@ -14,6 +15,7 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
   const [capturedCount, setCapturedCount] = useState(0);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [remoteOpen, setRemoteOpen] = useState(false);
+  const [permissionError, setPermissionError] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -101,8 +103,9 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
          openRemoteControl();
       }
 
+      // Updated to standard call for getDisplayMedia
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { mediaSource: 'screen' } as any,
+        video: true,
         audio: false
       });
       
@@ -126,12 +129,14 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
         handleFinish();
       };
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to start recording:", err);
-      if (err instanceof DOMException && err.name === 'NotAllowedError') {
-          alert("Permission denied. Please allow screen recording permission when prompted.");
+      if (err.name === 'NotAllowedError') {
+          // User cancelled
+      } else if (err.message && (err.message.includes('permissions policy') || err.message.includes('denied by system'))) {
+          setPermissionError(true);
       } else {
-          alert("Could not start screen capture. Error: " + (err as Error).message);
+          alert("Could not start screen capture. Error: " + err.message);
       }
     }
   };
@@ -350,6 +355,39 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
                     playsInline 
                     autoPlay
                 />
+            </div>
+        )}
+
+        {permissionError && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-md shadow-2xl border border-red-100 animate-in fade-in zoom-in duration-200">
+                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+                        <IconShield className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-center mb-2 text-slate-800">Quyền truy cập bị hạn chế</h3>
+                    <p className="text-slate-600 text-center mb-6 text-sm">
+                        Trình duyệt hoặc khung làm việc hiện tại đang chặn tính năng chụp màn hình (Permission Policy). 
+                        <br/><br/>
+                        Để sử dụng tính năng này, vui lòng mở ứng dụng trong một tab mới.
+                    </p>
+                    <div className="flex gap-3">
+                        <button 
+                            onClick={() => setPermissionError(false)} 
+                            className="btn btn-ghost flex-1 border border-slate-200"
+                        >
+                            Đóng
+                        </button>
+                        <button 
+                            onClick={() => {
+                                window.open(window.location.href, '_blank');
+                                setPermissionError(false);
+                            }} 
+                            className="btn btn-primary flex-1 text-white gap-2"
+                        >
+                            Mở Tab Mới <IconExternalLink className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
             </div>
         )}
       </div>

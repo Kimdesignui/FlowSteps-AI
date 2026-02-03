@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { DocStep, ProjectMetadata, Annotation, Guide } from '../types';
 import ImageEditor from './ImageEditor';
 import { analyzeScreenshot, generateStepDescription } from '../services/geminiService';
 import ChatAssistant from './ChatAssistant';
-import { IconPlus, IconTrash, IconDownload, IconCamera, IconWand, IconArrowUp, IconArrowDown, IconGlobe, IconType, IconSquare, IconCircle, IconCrop, IconFileCode, IconFileText, IconArrowRight, IconUndo, IconRedo, IconEye, IconX, IconList, IconRefresh, IconImage, IconSparkles, IconCopy, IconCheck, IconSave, IconHome, IconBold, IconItalic, IconIndent, IconOutdent } from './Icons';
+import { IconPlus, IconTrash, IconDownload, IconCamera, IconWand, IconArrowUp, IconArrowDown, IconGlobe, IconType, IconSquare, IconCircle, IconCrop, IconFileCode, IconFileText, IconArrowRight, IconUndo, IconRedo, IconEye, IconX, IconList, IconRefresh, IconImage, IconSparkles, IconCopy, IconCheck, IconSave, IconHome, IconBold, IconItalic, IconIndent, IconOutdent, IconShield, IconExternalLink } from './Icons';
 
 // --- Simple WYSIWYG Editor ---
 const SimpleEditor = ({ value, onChange, placeholder, className }: { value: string, onChange: (val: string) => void, placeholder: string, className?: string }) => {
@@ -384,6 +385,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
   const [steps, setSteps] = useState<DocStep[]>(initialGuide?.steps || []);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(initialGuide?.steps[0]?.id || null);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [permissionError, setPermissionError] = useState(false);
   
   const [guideId] = useState<string>(() => initialGuide?.id || Date.now().toString());
   
@@ -465,13 +467,22 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
 
   const handleCapture = async () => {
     try {
+      // Use standard getUserMedia options
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { mediaSource: 'screen' } as any
+        video: true,
+        audio: false
       });
       const base64Image = await captureFrameFromStream(stream);
       addStep(base64Image);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Screen capture failed:", err);
+      if (err.name === 'NotAllowedError') {
+         // User cancelled
+      } else if (err.message && (err.message.includes('permissions policy') || err.message.includes('denied by system'))) {
+         setPermissionError(true);
+      } else {
+         alert("Không thể chụp màn hình. Lỗi: " + err.message);
+      }
     }
   };
 
@@ -479,12 +490,20 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
       if (!selectedStepId) return;
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: { mediaSource: 'screen' } as any
+            video: true,
+            audio: false
         });
         const base64Image = await captureFrameFromStream(stream);
         updateStep(selectedStepId, { image: base64Image });
-      } catch (err) {
+      } catch (err: any) {
         console.error("Replace capture failed:", err);
+        if (err.name !== 'NotAllowedError') {
+             if (err.message && (err.message.includes('permissions policy') || err.message.includes('denied by system'))) {
+                 setPermissionError(true);
+             } else {
+                 alert("Không thể chụp màn hình. Lỗi: " + err.message);
+             }
+        }
       }
   };
 
@@ -608,6 +627,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
   };
 
   const generateDocumentContent = async (includeTOC: boolean): Promise<string> => {
+      // Content generation logic...
       let content = `
       <!DOCTYPE html>
       <html>
@@ -721,6 +741,39 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
     <div className="flex h-screen w-full bg-base-200 font-sans text-slate-800">
       
       <ChatAssistant />
+
+      {permissionError && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-md shadow-2xl border border-red-100 animate-in fade-in zoom-in duration-200">
+                <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+                    <IconShield className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-center mb-2 text-slate-800">Quyền truy cập bị hạn chế</h3>
+                <p className="text-slate-600 text-center mb-6 text-sm">
+                    Trình duyệt hoặc khung làm việc hiện tại đang chặn tính năng chụp màn hình (Permission Policy). 
+                    <br/><br/>
+                    Để sử dụng tính năng này, vui lòng mở ứng dụng trong một tab mới.
+                </p>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setPermissionError(false)} 
+                        className="btn btn-ghost flex-1 border border-slate-200"
+                    >
+                        Đóng
+                    </button>
+                    <button 
+                        onClick={() => {
+                            window.open(window.location.href, '_blank');
+                            setPermissionError(false);
+                        }} 
+                        className="btn btn-primary flex-1 text-white gap-2"
+                    >
+                        Mở Tab Mới <IconExternalLink className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
 
       {isPreviewMode && (
           <DocumentPreview 

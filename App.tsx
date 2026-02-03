@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import ProjectView from './components/ProjectView';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
+import AdminDashboard from './components/AdminDashboard';
 import { Guide, Project } from './types';
 import { saveGuide, getGuideById, saveProject, getProjectById } from './services/storageService';
 import { getCurrentUser, logout, User } from './services/authService';
@@ -12,7 +13,8 @@ import { getCurrentUser, logout, User } from './services/authService';
 type ViewState = 
     | { type: 'dashboard' }
     | { type: 'editor', guideId?: string, projectId?: string } 
-    | { type: 'project', projectId: string };
+    | { type: 'project', projectId: string }
+    | { type: 'admin' };
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -72,6 +74,7 @@ export default function App() {
 
     // --- Navigation Handlers ---
     const navigateToDashboard = () => setCurrentView({ type: 'dashboard' });
+    const navigateToAdmin = () => setCurrentView({ type: 'admin' });
     const navigateToNewGuide = () => setCurrentView({ type: 'editor' });
     const navigateToEditGuide = (id: string) => setCurrentView({ type: 'editor', guideId: id });
     const navigateToProject = (id: string) => setCurrentView({ type: 'project', projectId: id });
@@ -128,13 +131,21 @@ export default function App() {
         );
     }
 
-    // --- Main Layout ---
+    // --- ADMIN VIEW (FULL PAGE) ---
+    if (currentView.type === 'admin') {
+        return <AdminDashboard onLogout={handleLogout} onBack={navigateToDashboard} />;
+    }
+
+    // --- USER VIEW ---
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-base-200 text-base-content font-sans transition-colors duration-200">
             {currentView.type !== 'editor' && (
                 <Sidebar 
-                    activeView={currentView.type} 
-                    onNavigate={navigateToDashboard}
+                    activeView={currentView.type as any} 
+                    onNavigate={(view) => {
+                        if (view === 'admin') navigateToAdmin();
+                        else navigateToDashboard();
+                    }}
                     onCreateProject={handleCreateProject}
                     theme={theme}
                     onSetTheme={setTheme}

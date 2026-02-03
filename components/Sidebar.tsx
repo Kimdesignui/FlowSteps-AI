@@ -1,13 +1,13 @@
 
 import React, { useRef, useState } from 'react';
-import { IconHome, IconDownload, IconPlus, IconExternalLink, IconHelp, IconSun, IconMoon, IconMonitor } from './Icons';
+import { IconHome, IconDownload, IconPlus, IconExternalLink, IconHelp, IconSun, IconMoon, IconMonitor, IconShield } from './Icons';
 import { exportData, importData } from '../services/storageService';
 import HelpModal from './HelpModal';
 import { User } from '../services/authService';
 
 interface SidebarProps {
-    activeView: 'dashboard' | 'project' | 'editor';
-    onNavigate: (view: 'dashboard') => void;
+    activeView: 'dashboard' | 'project' | 'editor' | 'admin';
+    onNavigate: (view: 'dashboard' | 'admin') => void;
     onCreateProject: () => void;
     className?: string;
     theme: 'light' | 'dark' | 'system';
@@ -72,6 +72,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, onCreateProje
                         >
                             <IconPlus className="w-5 h-5" /> Dự án mới
                         </button>
+
+                        {user.role === 'admin' && (
+                             <button 
+                                onClick={() => onNavigate('admin')}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-medium ${
+                                    activeView === 'admin' 
+                                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' 
+                                    : 'text-red-500 hover:bg-red-50 hover:text-red-600'
+                                }`}
+                             >
+                                <IconShield className="w-5 h-5" /> Quản trị hệ thống
+                             </button>
+                        )}
                     </div>
                 </div>
 

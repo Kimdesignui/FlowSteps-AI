@@ -11,8 +11,19 @@
     
     <script>
       tailwind.config = {
-        darkMode: 'class',
-        theme: { extend: { colors: { primary: '#6366f1', secondary: '#ec4899' } } }
+        darkMode: 'class', // Quan trọng: Cho phép đổi giao diện bằng class
+        theme: {
+          extend: {
+            colors: {
+              primary: '#6366f1',
+              secondary: '#ec4899',
+            }
+          }
+        },
+        // Thêm đoạn này để DaisyUI nhận diện được các chế độ màu
+        daisyui: {
+          themes: ["light", "dark", "cupcake"], // Ông có thể thêm các theme khác của DaisyUI vào đây
+        }
       }
     </script>
   </head>

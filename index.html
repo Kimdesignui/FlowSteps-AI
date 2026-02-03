@@ -6,23 +6,22 @@
     <title>FlowSteps AI</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     
     <script>
+      // Cách khai báo Theme chuẩn cho UI Designer mà không gây lỗi trắng trang
       tailwind.config = {
         darkMode: 'class',
         theme: {
           extend: {
-            fontFamily: { sans: ['Inter', 'sans-serif'] },
             colors: {
               primary: '#6366f1',
               secondary: '#ec4899',
+              accent: '#8b5cf6',
+              neutral: '#1e293b',
             }
           }
         }
@@ -41,6 +40,6 @@
   <body class="bg-base-200 h-screen overflow-hidden text-base-content antialiased">
     <div id="root"></div>
     
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 
 import { Guide, Project } from '../types';
-import { getCurrentUser } from './authService';
+import { getCurrentUser, getAllUsers } from './authService';
 
 // Helper to get keys based on current user
 const getStorageKeys = () => {
@@ -132,4 +132,41 @@ export const clearAllData = () => {
     const keys = getStorageKeys();
     localStorage.removeItem(keys.GUIDES);
     localStorage.removeItem(keys.PROJECTS);
+};
+
+// --- ADMIN GLOBAL ACCESS (Simulated Backend Scan) ---
+
+export const getGlobalProjects = (): (Project & { ownerName: string, ownerId: string })[] => {
+    const allUsers = getAllUsers();
+    let globalProjects: (Project & { ownerName: string, ownerId: string })[] = [];
+
+    allUsers.forEach(user => {
+        const projectKey = `df_projects_${user.id}`;
+        const rawData = localStorage.getItem(projectKey);
+        if (rawData) {
+            try {
+                const projects: Project[] = JSON.parse(rawData);
+                const enriched = projects.map(p => ({
+                    ...p,
+                    ownerName: user.name,
+                    ownerId: user.id
+                }));
+                globalProjects = [...globalProjects, ...enriched];
+            } catch (e) {
+                console.error(`Error parsing projects for user ${user.id}`);
+            }
+        }
+    });
+
+    return globalProjects;
+};
+
+export const deleteGlobalProject = (userId: string, projectId: string) => {
+    const projectKey = `df_projects_${userId}`;
+    const rawData = localStorage.getItem(projectKey);
+    if (rawData) {
+        const projects: Project[] = JSON.parse(rawData);
+        const filtered = projects.filter(p => p.id !== projectId);
+        localStorage.setItem(projectKey, JSON.stringify(filtered));
+    }
 };

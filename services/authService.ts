@@ -14,21 +14,45 @@ const KEYS = {
     CURRENT_USER: 'fs_current_user'
 };
 
-// Initialize Admin if not exists
+// Initialize Admin if not exists or update existing to specific requirements
 const initAdmin = (users: User[]) => {
-    if (!users.find(u => u.role === 'admin')) {
+    const adminIndex = users.findIndex(u => u.role === 'admin');
+    
+    // Requested Admin Credentials
+    const targetAdmin = {
+        username: 'Kimtieuke',
+        password: 'Kim87@',
+        name: 'Kimtieuke (Admin)'
+    };
+
+    if (adminIndex !== -1) {
+        // If an admin exists (e.g. the default 'admin'), update it to the requested one
+        // to ensure the user can log in with the new credentials immediately.
+        const currentAdmin = users[adminIndex];
+        if (currentAdmin.username !== targetAdmin.username || currentAdmin.password !== targetAdmin.password) {
+            users[adminIndex] = {
+                ...currentAdmin,
+                username: targetAdmin.username,
+                password: targetAdmin.password,
+                name: targetAdmin.name
+            };
+            return true; // Indicates change occurred
+        }
+        return false;
+    } else {
+        // Create fresh admin if none exists
         const admin: User = {
-            id: 'admin_01',
-            username: 'admin',
-            password: 'admin123', // Default password
-            name: 'Quản trị viên',
+            id: 'admin_kim',
+            username: targetAdmin.username,
+            password: targetAdmin.password, // Requested password
+            name: targetAdmin.name,
             role: 'admin',
+            recoveryCode: 'KIM_MASTER_KEY',
             createdAt: Date.now()
         };
         users.push(admin);
         return true;
     }
-    return false;
 };
 
 const getUsers = (): User[] => {

@@ -4,9 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlowSteps AI</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,53 +19,26 @@
         darkMode: 'class',
         theme: {
           extend: {
-            fontFamily: {
-              sans: ['Inter', 'Segoe UI', '-apple-system', 'BlinkMacSystemFont', 'San Francisco', 'Roboto', 'sans-serif'],
-            },
+            fontFamily: { sans: ['Inter', 'sans-serif'] },
             colors: {
               primary: '#6366f1',
               secondary: '#ec4899',
-              accent: '#8b5cf6',
-              neutral: '#1e293b',
-              'base-100': '#ffffff',
-              'base-200': '#ffffff', 
-              'base-300': '#e2e8f0',
-            },
-            boxShadow: {
-              'soft': '0 4px 20px -2px rgba(99, 102, 241, 0.1)',
-              'glow': '0 0 15px rgba(99, 102, 241, 0.3)',
             }
           }
-        },
-        // Đã xóa phần require lỗi ở đây
+        }
       }
     </script>
     
     <style>
-      body {
-        font-family: 'Inter', sans-serif;
-      }
-      ::-webkit-scrollbar { width: 8px; height: 8px; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+      body { font-family: 'Inter', sans-serif; }
       .gradient-text {
         background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
       }
     </style>
-
-    <script type="importmap">
-    {
-      "imports": {
-        "react/": "https://esm.sh/react@^19.2.3/",
-        "react": "https://esm.sh/react@^19.2.3",
-        "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-        "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
-      }
-    }
-    </script>
   </head>
-  <body class="bg-base-200 h-screen overflow-hidden text-base-content font-sans antialiased">
+  <body class="bg-base-200 h-screen overflow-hidden text-base-content antialiased">
     <div id="root"></div>
     
     <script type="module" src="index.tsx"></script>

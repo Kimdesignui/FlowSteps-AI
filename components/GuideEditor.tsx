@@ -4,7 +4,7 @@ import { DocStep, ProjectMetadata, Annotation, Guide } from '../types';
 import ImageEditor from './ImageEditor';
 import { analyzeScreenshot, generateStepDescription } from '../services/geminiService';
 import ChatAssistant from './ChatAssistant';
-import { IconPlus, IconTrash, IconDownload, IconCamera, IconWand, IconArrowUp, IconArrowDown, IconGlobe, IconType, IconSquare, IconCircle, IconCrop, IconFileCode, IconFileText, IconArrowRight, IconUndo, IconRedo, IconEye, IconX, IconList, IconRefresh, IconImage, IconSparkles, IconCopy, IconCheck, IconSave, IconHome, IconBold, IconItalic, IconIndent, IconOutdent, IconShield, IconExternalLink } from './Icons';
+import { IconPlus, IconTrash, IconDownload, IconCamera, IconWand, IconArrowUp, IconArrowDown, IconGlobe, IconType, IconSquare, IconCircle, IconCrop, IconFileCode, IconFileText, IconArrowRight, IconUndo, IconRedo, IconEye, IconX, IconList, IconRefresh, IconImage, IconSparkles, IconCopy, IconCheck, IconSave, IconHome, IconBold, IconItalic, IconIndent, IconOutdent, IconShield, IconExternalLink, IconArrowLeft } from './Icons';
 
 // --- Simple WYSIWYG Editor ---
 const SimpleEditor = ({ value, onChange, placeholder, className }: { value: string, onChange: (val: string) => void, placeholder: string, className?: string }) => {
@@ -855,7 +855,11 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <div className="h-20 flex items-center justify-between px-8 z-20 shrink-0">
-          <div className="flex-1">
+          <div className="flex items-center gap-4 flex-1">
+            {/* Added Back Button Here */}
+            <button onClick={onBack} className="btn btn-circle btn-ghost btn-sm text-slate-400 hover:text-slate-700 hover:bg-slate-200" title="Quay lại">
+                <IconArrowLeft className="w-5 h-5" />
+            </button>
             <input 
                 value={metadata.title}
                 onChange={(e) => setMetadata({...metadata, title: e.target.value})}
@@ -865,6 +869,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
           </div>
 
           <div className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-soft border border-indigo-50">
+             {/* ...existing toolbar code... */}
              <div className="flex gap-1 px-2 border-r border-slate-100">
                  {[
                     { id: 'number', icon: <span className="font-bold text-xs">1</span> },

@@ -1,5 +1,5 @@
 {
-  "name": "FlowSteps AI - Trình tạo hướng dẫn",
+  "name": "FlowSteps AI - Trình tạo hướng dẫn sử dụng",
   "description": "Công cụ viết tài liệu thông minh hỗ trợ bởi AI. Chụp các bước, chú thích ảnh màn hình và tạo hướng dẫn PDF/Word tức thì.",
   "requestFramePermissions": [
     "camera",

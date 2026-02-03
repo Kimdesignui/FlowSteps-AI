@@ -208,43 +208,38 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
     }
 
     // Call onFinish with whatever we have
-    // Note: capturedImages is a state, passing it directly might use a stale closure if not careful.
-    // However, since handleFinish is called from UI or onended, it should access the current state scope component-wise.
-    // To be absolutely safe if called from event listener, we rely on the state variable which is updated.
-    // Check if we captured anything
     if (capturedImages.length === 0 && isRecording) {
         // If manual finish with 0 images, maybe warn?
-        // But for now, we just pass what we have.
     }
     
     onFinish(capturedImages);
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-100">
+    <div className="flex flex-col h-full bg-base-200 text-base-content">
       {/* Top Bar */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center justify-between shadow-sm z-20">
+      <div className="bg-base-100 border-b border-base-300 p-4 flex items-center justify-between shadow-sm z-20">
         <div className="flex items-center gap-4 flex-1">
-          <button onClick={onCancel} className="text-slate-500 hover:text-slate-700 text-sm font-medium">
+          <button onClick={onCancel} className="text-base-content/60 hover:text-base-content text-sm font-medium">
             ← Back
           </button>
           
-          <div className="flex items-center gap-2 flex-1 max-w-xl bg-slate-50 border border-slate-200 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
-            <IconGlobe className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-2 flex-1 max-w-xl bg-base-200 border border-base-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+            <IconGlobe className="w-4 h-4 text-base-content/40" />
             <input 
               type="text" 
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleGo()}
               placeholder="Enter website URL (e.g., google.com)"
-              className="bg-transparent border-none focus:ring-0 w-full text-sm text-slate-700 placeholder-slate-400"
+              className="bg-transparent border-none focus:ring-0 w-full text-sm text-base-content placeholder-base-content/40"
               disabled={isRecording}
             />
           </div>
           <button 
             onClick={handleGo}
             disabled={isRecording || !url}
-            className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 disabled:opacity-50"
+            className="px-4 py-2 bg-neutral text-neutral-content text-sm font-medium rounded-md hover:bg-neutral/80 disabled:opacity-50"
           >
             Load
           </button>
@@ -252,7 +247,7 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
           {activeUrl && (
              <button
                 onClick={openInNewTab}
-                className="flex items-center gap-2 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded-md text-sm font-medium transition-colors border border-indigo-200"
+                className="flex items-center gap-2 px-3 py-2 text-primary hover:bg-primary/10 rounded-md text-sm font-medium transition-colors border border-primary/20"
                 title="Open in new window"
              >
                 <IconExternalLink className="w-4 h-4" />
@@ -277,15 +272,15 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
            {!isRecording ? (
              <button 
                 onClick={startRecording}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow-sm animate-pulse font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary/90 shadow-sm animate-pulse font-medium"
              >
                 <div className="w-2 h-2 rounded-full bg-white" />
                 Start Session
              </button>
            ) : (
              <div className="flex items-center gap-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Steps: <span className="text-indigo-600 text-lg">{capturedCount}</span>
+                <div className="text-xs font-semibold uppercase tracking-wider text-base-content/60">
+                    Steps: <span className="text-primary text-lg">{capturedCount}</span>
                 </div>
                 <button 
                     onClick={handleFinish}
@@ -301,7 +296,7 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
 
       <div className="flex-1 relative flex overflow-hidden">
         {/* Main View Area */}
-        <div className="flex-1 bg-slate-200 relative flex items-center justify-center">
+        <div className="flex-1 bg-base-300 relative flex items-center justify-center">
             {activeUrl ? (
                 <div className="w-full h-full relative flex flex-col">
                      <div className="bg-blue-50 text-blue-900 text-sm px-6 py-4 flex flex-col gap-2 border-b border-blue-200 shadow-sm relative z-10">
@@ -325,9 +320,9 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
                     />
                 </div>
             ) : (
-                <div className="text-center text-slate-400 max-w-md mx-auto">
+                <div className="text-center text-base-content/40 max-w-md mx-auto">
                     <IconGlobe className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                    <h3 className="text-lg font-semibold text-slate-600 mb-2">Web Guide Recorder</h3>
+                    <h3 className="text-lg font-semibold text-base-content/60 mb-2">Web Guide Recorder</h3>
                     <p className="text-sm">Enter a URL above to verify the site.</p>
                     <p className="text-sm mt-2">For best results with complex sites, open them in a new window and use our <b>Remote Control</b> feature.</p>
                 </div>
@@ -335,7 +330,7 @@ const WebRecorder: React.FC<WebRecorderProps> = ({ onFinish, onCancel }) => {
         </div>
 
         {isRecording && (
-            <div className="w-24 bg-slate-900 flex flex-col items-center py-6 gap-6 z-30 shadow-xl border-l border-slate-700">
+            <div className="w-24 bg-neutral flex flex-col items-center py-6 gap-6 z-30 shadow-xl border-l border-neutral/50">
                 <div className="flex flex-col items-center gap-2 sticky top-6">
                     <button
                         id="capture-btn"

@@ -5,8 +5,8 @@ import { analyzeScreenshot, generateStepDescription } from '../services/geminiSe
 import ChatAssistant from './ChatAssistant';
 import { IconPlus, IconTrash, IconDownload, IconCamera, IconWand, IconArrowUp, IconArrowDown, IconGlobe, IconType, IconSquare, IconCircle, IconCrop, IconFileCode, IconFileText, IconArrowRight, IconUndo, IconRedo, IconEye, IconX, IconList, IconRefresh, IconImage, IconSparkles, IconCopy, IconCheck, IconSave, IconHome, IconBold, IconItalic, IconIndent, IconOutdent } from './Icons';
 
-// --- Extended WYSIWYG Editor Component ---
-const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder: string }) => {
+// --- Simple WYSIWYG Editor ---
+const SimpleEditor = ({ value, onChange, placeholder, className }: { value: string, onChange: (val: string) => void, placeholder: string, className?: string }) => {
     const editorRef = useRef<HTMLDivElement>(null);
     const [activeFormats, setActiveFormats] = useState<string[]>([]);
 
@@ -43,32 +43,8 @@ const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChang
     };
 
     return (
-        <div className="border border-slate-200 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all shadow-sm">
+        <div className={`border border-slate-200 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-100 transition-all shadow-sm ${className}`}>
             <div className="flex flex-wrap items-center gap-1 p-2 border-b border-slate-100 bg-slate-50/50">
-                <select 
-                    className="select select-xs select-bordered bg-white w-24 font-normal"
-                    onChange={(e) => exec('fontName', e.target.value)}
-                    defaultValue="Inter"
-                >
-                    <option value="Inter">Inter</option>
-                    <option value="Arial">Arial</option>
-                    <option value="Times New Roman">Times</option>
-                    <option value="Courier New">Courier</option>
-                </select>
-
-                <select 
-                    className="select select-xs select-bordered bg-white w-16 font-normal ml-1"
-                    onChange={(e) => exec('fontSize', e.target.value)}
-                    defaultValue="3"
-                >
-                    <option value="1">Nhỏ</option>
-                    <option value="3">Vừa</option>
-                    <option value="5">Lớn</option>
-                    <option value="7">Rất lớn</option>
-                </select>
-
-                <div className="w-px h-4 bg-slate-300 mx-2"></div>
-
                 <button 
                     onClick={() => exec('bold')} 
                     className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors ${activeFormats.includes('bold') ? 'bg-slate-200 text-indigo-600' : ''}`}
@@ -83,9 +59,7 @@ const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChang
                 >
                     <IconItalic className="w-4 h-4" />
                 </button>
-                
-                <div className="w-px h-4 bg-slate-300 mx-2"></div>
-                
+                <div className="w-px h-4 bg-slate-300 mx-1"></div>
                 <button 
                     onClick={() => exec('insertUnorderedList')} 
                     className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 transition-colors ${activeFormats.includes('list') ? 'bg-slate-200 text-indigo-600' : ''}`}
@@ -100,7 +74,7 @@ const SimpleEditor = ({ value, onChange, placeholder }: { value: string, onChang
                 onInput={handleInput}
                 onKeyUp={checkFormats}
                 onMouseUp={checkFormats}
-                className="p-4 min-h-[150px] outline-none text-slate-600 leading-relaxed text-lg [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:my-2 font-sans"
+                className="p-4 min-h-[100px] outline-none text-slate-600 leading-relaxed [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:my-2 font-sans"
                 style={{ whiteSpace: 'pre-wrap' }}
                 data-placeholder={placeholder}
             />
@@ -117,10 +91,16 @@ const renderStepToCanvas = async (step: DocStep): Promise<string> => {
             const ctx = canvas.getContext('2d');
             if (!ctx) return resolve(step.image);
 
+            // Use natural dimensions for high quality
             canvas.width = img.naturalWidth;
             canvas.height = img.naturalHeight;
             
+            // Draw original image
             ctx.drawImage(img, 0, 0);
+
+            // Calculate scale factor to keep annotations proportional regardless of image resolution
+            // We assume base designs are around 1000px wide roughly, so we scale line widths
+            const scaleFactor = Math.max(1, canvas.width / 1200);
 
             step.annotations.forEach(ann => {
                 const x = (ann.x / 100) * canvas.width;
@@ -128,30 +108,40 @@ const renderStepToCanvas = async (step: DocStep): Promise<string> => {
                 const w = (ann.width ? ann.width / 100 : 0) * canvas.width;
                 const h = (ann.height ? ann.height / 100 : 0) * canvas.height;
 
-                ctx.strokeStyle = ann.color || 'red';
-                ctx.fillStyle = ann.color || 'red';
-                ctx.lineWidth = 5;
+                ctx.beginPath(); // Critical: Reset path for each shape
+                
+                ctx.strokeStyle = ann.color || '#ff0000';
+                ctx.fillStyle = ann.color || '#ff0000';
+                ctx.lineWidth = 5 * scaleFactor;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
 
                 if (ann.type === 'arrow') {
-                    const endX = (ann.width || 0) / 100 * canvas.width;
+                    // Arrow coordinates in data: x/y is Start, width/height is End (percent)
+                    const startX = x;
+                    const startY = y;
+                    // Note: width/height in arrow Annotation are actually the End X/Y percentages
+                    const endX = (ann.width || 0) / 100 * canvas.width; 
                     const endY = (ann.height || 0) / 100 * canvas.height;
                     
-                    const headlen = 20; 
-                    const dx = endX - x;
-                    const dy = endY - y;
+                    const headLen = 20 * scaleFactor;
+                    const dx = endX - startX;
+                    const dy = endY - startY;
                     const angle = Math.atan2(dy, dx);
 
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
+                    // Draw line
+                    ctx.moveTo(startX, startY);
                     ctx.lineTo(endX, endY);
                     ctx.stroke();
 
+                    // Draw arrowhead
                     ctx.beginPath();
                     ctx.moveTo(endX, endY);
-                    ctx.lineTo(endX - headlen * Math.cos(angle - Math.PI / 6), endY - headlen * Math.sin(angle - Math.PI / 6));
-                    ctx.lineTo(endX - headlen * Math.cos(angle + Math.PI / 6), endY - headlen * Math.sin(angle + Math.PI / 6));
+                    ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
                     ctx.lineTo(endX, endY);
                     ctx.fill();
+
                 } else if (ann.type === 'rect') {
                     if (ann.style === 'fill') {
                         ctx.globalAlpha = 0.3;
@@ -161,7 +151,6 @@ const renderStepToCanvas = async (step: DocStep): Promise<string> => {
                         ctx.strokeRect(x, y, w, h);
                     }
                 } else if (ann.type === 'circle') {
-                    ctx.beginPath();
                     ctx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, 2 * Math.PI);
                     if (ann.style === 'fill') {
                          ctx.globalAlpha = 0.3;
@@ -171,32 +160,38 @@ const renderStepToCanvas = async (step: DocStep): Promise<string> => {
                         ctx.stroke();
                     }
                 } else if (ann.type === 'number') {
-                    const radius = 24; 
-                    ctx.beginPath();
+                    const radius = 24 * scaleFactor; 
                     ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
                     ctx.fill();
-                    ctx.lineWidth = 3;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
                     ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 2 * scaleFactor;
                     ctx.stroke();
 
                     ctx.fillStyle = 'white';
-                    ctx.font = 'bold 24px Arial';
+                    ctx.font = `bold ${24 * scaleFactor}px Arial`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(ann.text || '', x, y);
                 } else if (ann.type === 'text') {
-                     ctx.font = 'bold 32px Arial';
-                     ctx.fillStyle = ann.color || 'red';
+                     ctx.font = `bold ${32 * scaleFactor}px Arial`;
                      ctx.textAlign = 'center';
                      ctx.fillText(ann.text || '', x, y);
-                     ctx.lineWidth = 1;
+                     
                      ctx.strokeStyle = 'white';
+                     ctx.lineWidth = 4 * scaleFactor;
                      ctx.strokeText(ann.text || '', x, y);
+                     
+                     ctx.fillStyle = ann.color || '#ff0000';
+                     ctx.fillText(ann.text || '', x, y);
                 }
             });
 
             resolve(canvas.toDataURL('image/png'));
         };
+        img.onerror = () => resolve(step.image); // Fallback
         img.src = step.image;
     });
 };
@@ -205,6 +200,7 @@ const DocumentPreview = ({
     steps, 
     metadata, 
     onClose, 
+    onUpdateStep,
     onExportHTML,
     onExportDOCX,
     onCopy
@@ -212,6 +208,7 @@ const DocumentPreview = ({
     steps: DocStep[], 
     metadata: ProjectMetadata, 
     onClose: () => void,
+    onUpdateStep: (id: string, data: Partial<DocStep>) => void,
     onExportHTML: (includeTOC: boolean) => void,
     onExportDOCX: (includeTOC: boolean) => void,
     onCopy: (includeTOC: boolean) => Promise<boolean>
@@ -220,11 +217,29 @@ const DocumentPreview = ({
     const [isCopying, setIsCopying] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
     const [isPreparing, setIsPreparing] = useState(false);
+    
+    // Cache generated images to prevent flickering during text edits
+    const [renderedImages, setRenderedImages] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        const renderImages = async () => {
+            const newImages: Record<string, string> = {};
+            for (const step of steps) {
+                if (!renderedImages[step.id]) {
+                    newImages[step.id] = await renderStepToCanvas(step);
+                }
+            }
+            if (Object.keys(newImages).length > 0) {
+                setRenderedImages(prev => ({...prev, ...newImages}));
+            }
+        };
+        renderImages();
+    }, [steps]);
 
     const handleAction = async (action: 'copy' | 'html' | 'docx') => {
         setIsPreparing(true);
+        // Force a tiny delay to show loading state
         await new Promise(r => setTimeout(r, 50));
-        
         try {
             if (action === 'copy') {
                 const success = await onCopy(includeTOC);
@@ -248,7 +263,7 @@ const DocumentPreview = ({
                 <div className="flex-1 gap-4">
                      <h2 className="font-bold text-xl text-indigo-900 flex items-center gap-2">
                         <span className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-pink-500 rounded-full"></span>
-                        Chế độ xem trước
+                        Trình soạn thảo văn bản
                      </h2>
                      {isPreparing && <span className="loading loading-spinner text-primary loading-sm"></span>}
                 </div>
@@ -264,15 +279,15 @@ const DocumentPreview = ({
                         }`}
                     >
                         {copySuccess ? <IconCheck className="w-4 h-4" /> : <IconCopy className="w-4 h-4" />}
-                        {copySuccess ? 'Đã sao chép!' : 'Sao chép vào Docs'}
+                        {copySuccess ? 'Đã sao chép!' : 'Sao chép Docs'}
                     </button>
 
                     <div className="h-6 w-px bg-slate-200 mx-1"></div>
 
-                    <button onClick={() => handleAction('html')} disabled={isPreparing} className="btn btn-outline btn-primary btn-sm rounded-full gap-2 hover:shadow-glow">
+                    <button onClick={() => handleAction('html')} disabled={isPreparing} className="btn btn-outline btn-primary btn-sm rounded-full gap-2">
                         <IconFileCode className="w-4 h-4" /> HTML
                     </button>
-                    <button onClick={() => handleAction('docx')} disabled={isPreparing} className="btn btn-primary btn-sm rounded-full gap-2 text-white shadow-lg hover:shadow-indigo-500/30 border-none gradient-bg">
+                    <button onClick={() => handleAction('docx')} disabled={isPreparing} className="btn btn-primary btn-sm rounded-full gap-2 text-white shadow-lg border-none gradient-bg">
                         <IconFileText className="w-4 h-4" /> DOCX
                     </button>
                     <button onClick={onClose} className="btn btn-circle btn-ghost btn-sm ml-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100">
@@ -295,7 +310,7 @@ const DocumentPreview = ({
                                         {idx + 1}
                                     </span>
                                     <div className="pt-1">
-                                        <span className="text-sm font-semibold text-slate-600 group-hover:text-indigo-900 block leading-tight mb-1">{step.title}</span>
+                                        <span className="text-sm font-semibold text-slate-600 group-hover:text-indigo-900 block leading-tight mb-1 truncate">{step.title}</span>
                                     </div>
                                 </a>
                             </li>
@@ -305,34 +320,53 @@ const DocumentPreview = ({
 
                 <div className="flex-1 overflow-y-auto p-8 flex justify-center bg-slate-50/50 scroll-smooth">
                     <div className="w-[850px] bg-white shadow-xl p-16 min-h-screen rounded-3xl border border-white mb-20">
-                        <h1 className="text-5xl font-extrabold text-slate-900 border-b-2 border-indigo-100 pb-8 mb-6 tracking-tight">{metadata.title}</h1>
-                        <div className="flex justify-between text-slate-500 font-medium mb-12 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-400"></span> Tác giả: {metadata.author}</span>
-                            <span>{metadata.date}</span>
+                        <div className="text-center border-b-2 border-indigo-100 pb-8 mb-8">
+                            <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight mb-4">{metadata.title}</h1>
+                            <div className="text-slate-500 font-medium">
+                                Tác giả: {metadata.author} • {metadata.date}
+                            </div>
                         </div>
                         
-                        {steps.map((step, idx) => {
-                             const HeadingTag = step.headingLevel || 'h2';
-                             return (
-                                <div key={step.id} id={`step-${step.id}`} className="mb-20 break-inside-avoid scroll-mt-24" style={{ marginLeft: `${step.indentation * 40}px` }}>
-                                    <HeadingTag className={`text-slate-800 mb-8 flex items-center gap-4 ${step.headingLevel === 'h1' ? 'text-4xl font-black' : step.headingLevel === 'h2' ? 'text-3xl font-bold' : 'text-2xl font-bold'}`}>
-                                        <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 text-lg font-bold shrink-0">{idx + 1}</span>
-                                        {step.title}
-                                    </HeadingTag>
+                        {steps.map((step, idx) => (
+                             <div key={step.id} id={`step-${step.id}`} className="mb-20 break-inside-avoid scroll-mt-24 group" style={{ marginLeft: `${step.indentation * 40}px` }}>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 text-lg font-bold shrink-0 select-none">{idx + 1}</span>
                                     
-                                    <div className="relative inline-block mb-8 border-4 border-slate-100 rounded-xl overflow-hidden shadow-lg max-w-full group hover:border-indigo-100 transition-colors">
-                                        <img src={step.image} alt="step" className="max-w-full h-auto block" />
-                                        {step.annotations.length > 0 && <div className="absolute top-2 right-2 badge badge-info text-white text-xs opacity-80">Có chú thích</div>}
-                                    </div>
-                                    <div className="bg-slate-50 border-l-4 border-indigo-500 rounded-r-xl p-6 shadow-sm">
-                                        <div 
-                                            className="prose prose-slate max-w-none text-lg leading-relaxed text-slate-700 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:my-2" 
-                                            dangerouslySetInnerHTML={{ __html: step.description }} 
+                                    <div className="flex-1">
+                                        <select 
+                                            value={step.headingLevel || 'h2'}
+                                            onChange={(e) => onUpdateStep(step.id, { headingLevel: e.target.value as any })}
+                                            className="select select-ghost select-xs text-slate-400 font-bold uppercase tracking-wider mb-1"
+                                        >
+                                            <option value="h1">Heading 1</option>
+                                            <option value="h2">Heading 2</option>
+                                            <option value="h3">Heading 3</option>
+                                        </select>
+                                        <input 
+                                            value={step.title}
+                                            onChange={(e) => onUpdateStep(step.id, { title: e.target.value })}
+                                            className={`w-full bg-transparent border-none outline-none font-bold text-slate-800 placeholder-slate-300 focus:ring-0 p-0 ${step.headingLevel === 'h1' ? 'text-4xl' : step.headingLevel === 'h2' ? 'text-3xl' : 'text-2xl'}`}
+                                            placeholder="Tiêu đề bước..."
                                         />
                                     </div>
                                 </div>
-                             )
-                        })}
+                                
+                                <div className="relative inline-block mb-8 border-4 border-slate-100 rounded-xl overflow-hidden shadow-lg max-w-full">
+                                    {renderedImages[step.id] ? (
+                                        <img src={renderedImages[step.id]} alt="step" className="max-w-full h-auto block" />
+                                    ) : (
+                                        <div className="w-full h-64 bg-slate-100 animate-pulse flex items-center justify-center text-slate-300">Đang tạo ảnh...</div>
+                                    )}
+                                </div>
+                                
+                                <SimpleEditor 
+                                    value={step.description}
+                                    onChange={(val) => onUpdateStep(step.id, { description: val })}
+                                    placeholder="Viết mô tả..."
+                                    className="border-l-4 border-l-indigo-500 rounded-none rounded-r-xl border-t-0 border-b-0 border-r-0 shadow-none bg-slate-50"
+                                />
+                            </div>
+                         ))}
                     </div>
                 </div>
             </div>
@@ -389,7 +423,6 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
       setTimeout(() => setSaveStatus('idle'), 2000);
   };
   
-  // Helper to capture frame from stream using video element (Cross-browser compatible)
   const captureFrameFromStream = async (stream: MediaStream): Promise<string> => {
       return new Promise((resolve, reject) => {
           const video = captureVideoRef.current;
@@ -402,13 +435,11 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
           video.onloadedmetadata = () => {
               video.play().then(() => {
                   setTimeout(() => {
-                      // Use a local reference to the video element we started with, or check current ref
                       const currentVideo = captureVideoRef.current;
                       if (!currentVideo) {
                           stream.getTracks().forEach(t => t.stop());
                           return reject("Video element unmounted");
                       }
-
                       const canvas = document.createElement('canvas');
                       canvas.width = currentVideo.videoWidth;
                       canvas.height = currentVideo.videoHeight;
@@ -416,7 +447,6 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
                       if (ctx) {
                           ctx.drawImage(currentVideo, 0, 0);
                           const data = canvas.toDataURL('image/png');
-                          
                           stream.getTracks().forEach(t => t.stop());
                           currentVideo.srcObject = null;
                           resolve(data);
@@ -438,10 +468,8 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { mediaSource: 'screen' } as any
       });
-      
       const base64Image = await captureFrameFromStream(stream);
       addStep(base64Image);
-      
     } catch (err) {
       console.error("Screen capture failed:", err);
     }
@@ -453,10 +481,8 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
         const stream = await navigator.mediaDevices.getDisplayMedia({
             video: { mediaSource: 'screen' } as any
         });
-        
         const base64Image = await captureFrameFromStream(stream);
         updateStep(selectedStepId, { image: base64Image });
-        
       } catch (err) {
         console.error("Replace capture failed:", err);
       }
@@ -515,7 +541,6 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
 
   const handleAiDescription = async () => {
     if(!selectedStepId || isAiGenerating) return;
-    
     const step = steps.find(s => s.id === selectedStepId);
     if (!step) return;
 
@@ -673,9 +698,7 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
         const blobHtml = new Blob([htmlContent], { type: 'text/html' });
         const blobText = new Blob([metadata.title + '\n\n' + steps.map(s => s.title + '\n' + s.description.replace(/<[^>]+>/g, '')).join('\n\n')], { type: 'text/plain' });
         
-        // Use any to bypass TS checks if ClipboardItem is not in the environment types
         const ClipboardItem = (window as any).ClipboardItem;
-
         if (ClipboardItem) {
             const item = new ClipboardItem({
                 'text/html': blobHtml,
@@ -697,7 +720,6 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
   return (
     <div className="flex h-screen w-full bg-base-200 font-sans text-slate-800">
       
-      {/* Include the Chat Assistant here */}
       <ChatAssistant />
 
       {isPreviewMode && (
@@ -705,12 +727,15 @@ export default function GuideEditor({ initialGuide, onSave, onBack }: GuideEdito
             steps={steps} 
             metadata={metadata} 
             onClose={() => setIsPreviewMode(false)} 
+            onUpdateStep={updateStep}
             onExportHTML={handleExportHTML}
             onExportDOCX={handleExportDOCX}
             onCopy={handleCopy}
           />
       )}
 
+      {/* Sidebar hidden by design in App.tsx when currentView is editor, or handled there */}
+      {/* Editor Content */}
       <div className="w-80 flex flex-col z-20 h-full p-4 pr-0">
          <div className="bg-white rounded-3xl shadow-soft h-full flex flex-col overflow-hidden border border-white/50">
             <div className="p-6 border-b border-indigo-50 bg-gradient-to-r from-white to-indigo-50/30">

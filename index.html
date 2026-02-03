@@ -5,41 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlowSteps AI</title>
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-      // Cách khai báo Theme chuẩn cho UI Designer mà không gây lỗi trắng trang
       tailwind.config = {
         darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              primary: '#6366f1',
-              secondary: '#ec4899',
-              accent: '#8b5cf6',
-              neutral: '#1e293b',
-            }
-          }
-        }
+        theme: { extend: { colors: { primary: '#6366f1', secondary: '#ec4899' } } }
       }
     </script>
-    
-    <style>
-      body { font-family: 'Inter', sans-serif; }
-      .gradient-text {
-        background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-    </style>
   </head>
   <body class="bg-base-200 h-screen overflow-hidden text-base-content antialiased">
     <div id="root"></div>
     
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="index.tsx"></script> 
   </body>
 </html>
